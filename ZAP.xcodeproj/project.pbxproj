@@ -11,6 +11,8 @@
 		7193B4912C7AB564002939BE /* ZAP.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7193B4862C7AB564002939BE /* ZAP.framework */; };
 		7193B4962C7AB564002939BE /* ZAPTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7193B4952C7AB564002939BE /* ZAPTests.swift */; };
 		7193B4972C7AB564002939BE /* ZAP.h in Headers */ = {isa = PBXBuildFile; fileRef = 7193B4892C7AB564002939BE /* ZAP.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		7193B4F22C7ADBFC002939BE /* ZAP-Bridging-Header.h in Headers */ = {isa = PBXBuildFile; fileRef = 7193B4EF2C7ADBFC002939BE /* ZAP-Bridging-Header.h */; };
+		7193B4F32C7ADBFC002939BE /* ZAP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7193B4F02C7ADBFC002939BE /* ZAP.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,6 +31,8 @@
 		7193B48A2C7AB564002939BE /* ZAP.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = ZAP.docc; sourceTree = "<group>"; };
 		7193B4902C7AB564002939BE /* ZAPTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZAPTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7193B4952C7AB564002939BE /* ZAPTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZAPTests.swift; sourceTree = "<group>"; };
+		7193B4EF2C7ADBFC002939BE /* ZAP-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ZAP-Bridging-Header.h"; sourceTree = "<group>"; };
+		7193B4F02C7ADBFC002939BE /* ZAP.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZAP.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +75,7 @@
 		7193B4882C7AB564002939BE /* ZAP */ = {
 			isa = PBXGroup;
 			children = (
+				7193B4F12C7ADBFC002939BE /* Source */,
 				7193B4892C7AB564002939BE /* ZAP.h */,
 				7193B48A2C7AB564002939BE /* ZAP.docc */,
 			);
@@ -85,6 +90,15 @@
 			path = ZAPTests;
 			sourceTree = "<group>";
 		};
+		7193B4F12C7ADBFC002939BE /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				7193B4EF2C7ADBFC002939BE /* ZAP-Bridging-Header.h */,
+				7193B4F02C7ADBFC002939BE /* ZAP.swift */,
+			);
+			path = Source;
+			sourceTree = SOURCE_ROOT;
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -93,6 +107,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7193B4972C7AB564002939BE /* ZAP.h in Headers */,
+				7193B4F22C7ADBFC002939BE /* ZAP-Bridging-Header.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -195,6 +210,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7193B48B2C7AB564002939BE /* ZAP.docc in Sources */,
+				7193B4F32C7ADBFC002939BE /* ZAP.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -413,6 +429,7 @@
 		7193B49E2C7AB564002939BE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SQ69PFPJS4;
@@ -429,6 +446,7 @@
 		7193B49F2C7AB564002939BE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = SQ69PFPJS4;

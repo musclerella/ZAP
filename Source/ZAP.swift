@@ -9,9 +9,9 @@ import Foundation
 
 public struct ZAP {
     
+    public let test = 1
+    
     public init() {
         
     }
-    
-    public var test = 1
 }
