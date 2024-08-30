@@ -1,0 +1,6 @@
+framework module Pods_ZAP_Tests {
+  umbrella header "Pods-ZAP_Tests-umbrella.h"
+
+  export *
+  module * { export * }
+}

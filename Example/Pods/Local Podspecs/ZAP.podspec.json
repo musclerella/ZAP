@@ -1,0 +1,22 @@
+{
+  "name": "ZAP",
+  "version": "0.1.0",
+  "summary": "A short description of ZAP.",
+  "description": "TODO: Add long description of the pod here.",
+  "homepage": "https://github.com/samuscarella/ZAP",
+  "license": {
+    "type": "MIT",
+    "file": "LICENSE"
+  },
+  "authors": {
+    "samuscarella": "contact@muscarella.info"
+  },
+  "source": {
+    "git": "https://github.com/samuscarella/ZAP.git",
+    "tag": "0.1.0"
+  },
+  "platforms": {
+    "ios": "17.0"
+  },
+  "source_files": "ZAP/Classes/**/*"
+}

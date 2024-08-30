@@ -1,0 +1,23 @@
+PODS:
+  - Alamofire (5.9.1)
+  - ZAP (0.1.0)
+
+DEPENDENCIES:
+  - Alamofire
+  - ZAP (from `../`)
+
+SPEC REPOS:
+  trunk:
+    - Alamofire
+
+EXTERNAL SOURCES:
+  ZAP:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  Alamofire: f36a35757af4587d8e4f4bfa223ad10be2422b8c
+  ZAP: ff4bd4a056c16f11008d556df14f913718370ffa
+
+PODFILE CHECKSUM: 636f87c59e51e8eb3521b0f6b51e8b3e80f94d67
+
+COCOAPODS: 1.15.2

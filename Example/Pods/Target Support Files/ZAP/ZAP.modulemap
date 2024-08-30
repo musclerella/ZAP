@@ -1,0 +1,6 @@
+framework module ZAP {
+  umbrella header "ZAP-umbrella.h"
+
+  export *
+  module * { export * }
+}
