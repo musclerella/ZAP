@@ -9,6 +9,8 @@ import Foundation
 
 //TODO: Is there some benefit of using delegateQueue? (OperationQueue)
 //TODO: Is there a range for success status codes?
+//TODO: Make multiple function signatures for each HTTPMethod
+//TODO: For buildURL() if url parameter has a slash on the end of the string remove it before adding query items
 public class Zap {
     
     public static let `default` = Zap()
@@ -41,17 +43,13 @@ public class Zap {
             let jsonDecoder = JSONDecoder()
 
             guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
-                // Failure
-                do {
-                    let failure = try jsonDecoder.decode(failure, from: responseData)
-                    return .failure(ZAPError.failureError(failure))
-                } catch let error as DecodingError {
-                    let errMsg = extractDecodingErrorMsg(error)
-                    let internalError = InternalError(debugMsg: errMsg)
+                let failureResult = handleFailure(failure, responseData: responseData)
+                if let failure = failureResult as? ZAPError<F> {
+                    return .failure(failure)
+                } else if case .internalError(let internalError) = failureResult {
                     return .failure(ZAPError.internalError(internalError))
-                } catch {
-                    let internalError = InternalError(debugMsg: error.localizedDescription)
-                    return .failure(ZAPError.internalError(internalError))
+                } else {
+                    return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while decoding the failure.")))
                 }
             }
             let successResult = handleSuccess(success, responseData: responseData)
@@ -60,7 +58,7 @@ public class Zap {
             } else if let internalError = successResult.1 {
                 return .failure(ZAPError.internalError(internalError))
             } else {
-                fatalError()
+                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while decoding the success.")))
             }
         } catch let error as EncodingError {
             let errMsg = extractEncodingErrorMsg(error)
@@ -71,10 +69,44 @@ public class Zap {
             return .failure(ZAPError.internalError(internalError))
         }
     }
+    
+    public func get<S: Decodable, F: Decodable>(url: String, queryItems: [URLQueryItem]? = nil, success: S.Type, failure: F.Type, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
+        
+        // 1. Build URL
+        let urlResult = buildURL(url: url, queryItems: queryItems)
+        guard let url = urlResult.0 else {
+            if case .internalError(let internalError) = urlResult.1 {
+                return .failure(ZAPError.internalError(internalError))
+            } else {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the URL.")))
+            }
+        }
+            
+        // 2. Build Request Body
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = HTTPMethod.post.rawValue.uppercased()
+        urlRequest.allHTTPHeaderFields = headers
+
+        return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.unknown.rawValue)))
+    }
 }
 
 extension Zap {
     
+    private func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, ZAPError<Any>?) {
+        // 1. Build URL
+        if let queryItems, var urlComponents = URLComponents(string: url) {
+            urlComponents.queryItems = queryItems
+            return (urlComponents.url, nil)
+        } else if let url = URL(string: url) {
+            return (url, nil)
+        } else {
+            let internalError = InternalError(debugMsg: ZAPErrorMsg.malformedURL.rawValue)
+            return (nil, ZAPError.internalError(internalError))
+        }
+    }
+
+    //TODO: Should we return the Swift.Result Type directly from this function and then return the function in the primary method?
     private func handleFailure<F: Decodable>(_ failure: F.Type, responseData: Data) -> ZAPError<Any> {
         // Failure
         do {
@@ -89,10 +121,11 @@ extension Zap {
             return ZAPError.internalError(internalError)
         }
     }
-    
+
+    //TODO: Should we return the Swift.Result Type directly from this function and then return the function in the primary method?
     private func handleSuccess<S: Decodable>(_ success: S.Type, responseData: Data) -> (S?, InternalError?) {
+        // Success
         do {
-            // Success
             let success = try JSONDecoder().decode(success, from: responseData)
             return (success, nil)
         } catch let error as DecodingError {
@@ -115,7 +148,7 @@ extension Zap {
             return error.localizedDescription
         }
     }
-    
+
     private func extractDecodingErrorMsg(_ error: DecodingError) -> String {
         switch error {
         case .dataCorrupted(let value):

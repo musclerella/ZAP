@@ -20,13 +20,8 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        postOneCall()
-    }
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+        postOneCall()
     }
     
     private func postOneCall() {
@@ -36,7 +31,6 @@ class ViewController: UIViewController {
             dump(result)
         }
     }
-
 }
 
 //<NSHTTPURLResponse: 0x600000267120> { URL: https://localhost:443/post/one } { Status Code: 200, Headers {
