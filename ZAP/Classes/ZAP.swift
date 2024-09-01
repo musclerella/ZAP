@@ -11,36 +11,104 @@ import Foundation
 //TODO: Is there a range for success status codes?
 //TODO: Make multiple function signatures for each HTTPMethod
 //TODO: For buildURL() if url parameter has a slash on the end of the string remove it before adding query items
-public class Zap {
+
+//MARK: Public Methods
+public class Zap: NSObject {
     
     public static let `default` = Zap()
 
-    public weak var delegate: URLSessionDelegate?
+    private weak var delegate: URLSessionDelegate?
     
-    public init() { }
+    public init(delegate: URLSessionDelegate? = nil) {
+        self.delegate = delegate
+    }
     
-    public func post<S: Decodable, F: Decodable>(url: String, body: Encodable, success: S.Type, failure: F.Type, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        
-        // 1. Build URL
-        guard let url = URL(string: url) else {
-            let internalError = InternalError(debugMsg: ZAPErrorMsg.malformedURL.rawValue)
-            return .failure(ZAPError.internalError(internalError))
-        }
+    public func post<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
+        return await buildAndExecuteRequest(method: .post, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+    }
+    
+    public func get<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
+        return await buildAndExecuteRequest(method: .get, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+    }
+    
+    public func put<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
+        return await buildAndExecuteRequest(method: .put, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+    }
+    
+    public func delete<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
+        return await buildAndExecuteRequest(method: .delete, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+    }
+}
 
+//MARK: Private Methods
+extension Zap {
+    
+    private func buildAndExecuteRequest<S: Decodable, F: Decodable>(method: HTTPMethod, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
+        // 1. Build URL
+        let urlResult = buildURL(url: url, queryItems: queryItems)
+        guard let url = urlResult.0 else {
+            if let internalError = urlResult.1 {
+                return .failure(ZAPError.internalError(internalError))
+            } else {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the URL.")))
+            }
+        }
+        
+        let requestResult = buildRequest(url: url, method: method, body: body, headers: headers)
+        if let request = requestResult.0 {
+            return await performRequestAndParseResponse(urlRequest: request, success: success, failure: failure)
+        } else if let internalError = requestResult.1 {
+            return .failure(ZAPError.internalError(internalError))
+        } else {
+            return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
+        }
+    }
+    
+    private func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, InternalError?) {
+        // 1. Build URL
+        if let queryItems, var urlComponents = URLComponents(string: url) {
+            urlComponents.queryItems = queryItems
+            return (urlComponents.url, nil)
+        } else if let url = URL(string: url) {
+            return (url, nil)
+        } else {
+            let internalError = InternalError(debugMsg: ZAPErrorMsg.malformedURL.rawValue)
+            return (nil, internalError)
+        }
+    }
+    
+    private func buildRequest(url: URL, method: HTTPMethod, body: Encodable? = nil, headers: [String: String]? = nil) -> (URLRequest?, InternalError?) {
+        // 2. Build Request Body
         do {
-            // 2. Build Request Body
-            let httpBody = try JSONEncoder().encode(body)
+            var httpBody: Data?
+            if let body {
+                httpBody = try JSONEncoder().encode(body)
+            }
             var urlRequest = URLRequest(url: url)
-            urlRequest.httpMethod = HTTPMethod.post.rawValue.uppercased()
+            urlRequest.httpMethod = method.rawValue.uppercased()
             urlRequest.allHTTPHeaderFields = headers
             urlRequest.httpBody = httpBody
-            // 3. Perform Request
-            let urlSession = URLSession(configuration: URLSessionConfiguration.default, delegate: delegate, delegateQueue: nil)
+
+            return (urlRequest, nil)
+            
+        } catch let error as EncodingError {
+            let errMsg = extractEncodingErrorMsg(error)
+            let internalError = InternalError(debugMsg: errMsg)
+            return (nil, internalError)
+        } catch {
+            let internalError = InternalError(debugMsg: error.localizedDescription)
+            return (nil, internalError)
+        }
+    }
+
+    private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
+        // 3. Perform Request
+        let urlSession = URLSession(configuration: URLSessionConfiguration.default, delegate: delegate, delegateQueue: nil)
+        do {
             let response = try await urlSession.data(for: urlRequest)
             // 4. Parse Response
             let urlResponse = response.1
             let responseData = response.0
-            let jsonDecoder = JSONDecoder()
 
             guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
                 let failureResult = handleFailure(failure, responseData: responseData)
@@ -60,52 +128,11 @@ public class Zap {
             } else {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while decoding the success.")))
             }
-        } catch let error as EncodingError {
-            let errMsg = extractEncodingErrorMsg(error)
-            let internalError = InternalError(debugMsg: errMsg)
-            return .failure(ZAPError.internalError(internalError))
         } catch {
-            let internalError = InternalError(debugMsg: error.localizedDescription)
-            return .failure(ZAPError.internalError(internalError))
+            return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }
     }
     
-    public func get<S: Decodable, F: Decodable>(url: String, queryItems: [URLQueryItem]? = nil, success: S.Type, failure: F.Type, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        
-        // 1. Build URL
-        let urlResult = buildURL(url: url, queryItems: queryItems)
-        guard let url = urlResult.0 else {
-            if case .internalError(let internalError) = urlResult.1 {
-                return .failure(ZAPError.internalError(internalError))
-            } else {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the URL.")))
-            }
-        }
-            
-        // 2. Build Request Body
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = HTTPMethod.post.rawValue.uppercased()
-        urlRequest.allHTTPHeaderFields = headers
-
-        return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.unknown.rawValue)))
-    }
-}
-
-extension Zap {
-    
-    private func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, ZAPError<Any>?) {
-        // 1. Build URL
-        if let queryItems, var urlComponents = URLComponents(string: url) {
-            urlComponents.queryItems = queryItems
-            return (urlComponents.url, nil)
-        } else if let url = URL(string: url) {
-            return (url, nil)
-        } else {
-            let internalError = InternalError(debugMsg: ZAPErrorMsg.malformedURL.rawValue)
-            return (nil, ZAPError.internalError(internalError))
-        }
-    }
-
     //TODO: Should we return the Swift.Result Type directly from this function and then return the function in the primary method?
     private func handleFailure<F: Decodable>(_ failure: F.Type, responseData: Data) -> ZAPError<Any> {
         // Failure

@@ -25,9 +25,10 @@ class ViewController: UIViewController {
     }
     
     private func postOneCall() {
+
+        let body = PostOneRequestBody(name: "Stephen Muscarella", age: 29)
         Task {
-            let body = PostOneRequestBody(name: "Stephen Muscarella", age: 29)
-            let result = try await ZAP.post(url: baseURL.appending(postOne), body: body, success: PostOneResponseBody.self, failure: ServerError.self)
+            let result = try await ZAP.post(url: baseURL.appending(postOne), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
             dump(result)
         }
     }
