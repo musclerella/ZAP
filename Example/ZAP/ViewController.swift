@@ -21,14 +21,28 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        postOneCall()
+//        postCall()
+        getCall()
     }
     
-    private func postOneCall() {
+    private func postCall() {
 
         let body = PostOneRequestBody(name: "Stephen Muscarella", age: 29)
         Task {
             let result = try await ZAP.post(url: baseURL.appending(postOne), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
+            dump(result)
+        }
+    }
+    
+    private func getCall() {
+        
+        let queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "paramOne", value: "==??///,,+54=="),
+            URLQueryItem(name: "paramTwo", value: "=`==~!@#$%^&*()_-=+<>.?==%%%/////,,,Gir affe=")
+        ]
+        
+        Task {
+            let result = try await ZAP.get(url: baseURL, success: PostOneResponseBody.self, failure: ServerError.self, queryItems: queryItems, headers: nil)
             dump(result)
         }
     }

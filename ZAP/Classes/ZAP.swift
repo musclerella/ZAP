@@ -10,25 +10,21 @@ import Foundation
 //TODO: Is there some benefit of using delegateQueue? (OperationQueue)
 //TODO: Is there a range for success status codes?
 //TODO: Make multiple function signatures for each HTTPMethod
-//TODO: For buildURL() if url parameter has a slash on the end of the string remove it before adding query items
-
+//TODO: Multipart file upload for files larger than 100 MB
 //MARK: Public Methods
 public class Zap: NSObject {
     
     public static let `default` = Zap()
-
-    private weak var delegate: URLSessionDelegate?
     
-    public init(delegate: URLSessionDelegate? = nil) {
-        self.delegate = delegate
+    public init() {
     }
     
     public func post<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequest(method: .post, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
     }
     
-    public func get<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        return await buildAndExecuteRequest(method: .get, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+    public func get<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
+        return await buildAndExecuteRequest(method: .get, url: url, success: success, failure: failure, queryItems: queryItems, headers: headers)
     }
     
     public func put<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
@@ -37,6 +33,10 @@ public class Zap: NSObject {
     
     public func delete<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequest(method: .delete, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+    }
+    
+    public func uploadFile<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, fileURL: String, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
+        
     }
 }
 
@@ -67,7 +67,7 @@ extension Zap {
     private func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, InternalError?) {
         // 1. Build URL
         if let queryItems, var urlComponents = URLComponents(string: url) {
-            urlComponents.queryItems = queryItems
+            urlComponents.percentEncodedQueryItems = queryItems.percentEncoded()
             return (urlComponents.url, nil)
         } else if let url = URL(string: url) {
             return (url, nil)
@@ -103,7 +103,7 @@ extension Zap {
 
     private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
         // 3. Perform Request
-        let urlSession = URLSession(configuration: URLSessionConfiguration.default, delegate: delegate, delegateQueue: nil)
+        let urlSession = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
         do {
             let response = try await urlSession.data(for: urlRequest)
             // 4. Parse Response
@@ -133,7 +133,6 @@ extension Zap {
         }
     }
     
-    //TODO: Should we return the Swift.Result Type directly from this function and then return the function in the primary method?
     private func handleFailure<F: Decodable>(_ failure: F.Type, responseData: Data) -> ZAPError<Any> {
         // Failure
         do {
@@ -149,7 +148,6 @@ extension Zap {
         }
     }
 
-    //TODO: Should we return the Swift.Result Type directly from this function and then return the function in the primary method?
     private func handleSuccess<S: Decodable>(_ success: S.Type, responseData: Data) -> (S?, InternalError?) {
         // Success
         do {
@@ -195,6 +193,22 @@ extension Zap {
             return error.localizedDescription
         }
     }
+}
+
+//MARK: URLSessionDelegate
+extension Zap: URLSessionDelegate {
+        
+//    public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+//        
+//    }
+//    
+//    public func urlSession(_ session: URLSession, didBecomeInvalidWithError error: (any Error)?) {
+//        
+//    }
+//    
+//    public func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
+//        
+//    }
 }
 
 //        urlRequest.httpBodyStream =

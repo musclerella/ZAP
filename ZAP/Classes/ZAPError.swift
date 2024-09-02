@@ -19,4 +19,5 @@ public struct InternalError: Error {
 enum ZAPErrorMsg: String, Error {
     case malformedURL = "The URL is malformed"
     case unknown = "An unknown error occurred"
+    case failedToReadFileDataFromFile = "Failed to read file data from file path"
 }
