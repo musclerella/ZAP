@@ -7,16 +7,16 @@
 
 import Foundation
 
-struct UploadProgress {
-    let progressHandler: (Double) -> Void
-    let completionHandler: (Result<Void, ZAPError<Any>>) -> Void
+public struct UploadProgress {
+    public let progressHandler: (Double) -> Void
+    public let completionHandler: (Result<Void, ZAPError<Any>>) -> Void
 }
 
-class FileUploader: NSObject, URLSessionTaskDelegate {
+class FileUploader: NSObject {
         
     var progress: UploadProgress?
     
-    func uploadFile(fileURL: URL, to url: URL, progress: UploadProgress) {
+    func uploadFile(fileURL: URL, to url: URL, progress: UploadProgress) async {
         self.progress = progress
         
         // Prepare the file data
@@ -30,10 +30,31 @@ class FileUploader: NSObject, URLSessionTaskDelegate {
         request.httpMethod = HTTPMethod.post.rawValue.uppercased()
         request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
         
-        let session = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
+        // Does running this on the main thread prevent using the app while upload is in progress?
+        let session = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: OperationQueue.main)
 
-        // Create an upload task with a delegate to monitor progress
-        let uploadTask = session.uploadTask(with: request, from: fileData)
-        uploadTask.resume()
+        do {
+            // How does Node.js receive the upload and does the response return once the file is completely uploaded?
+            let response = try await session.upload(for: request, from: fileData)
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
+    
+    func updateFile(fileURL: URL, to url: URL, progress: UploadProgress) {
+        // PUT
+    }
+}
+
+//MARK: Private Methods
+extension FileUploader {
+    
+}
+
+//MARK: URLSessionTaskDelegate
+extension FileUploader: URLSessionTaskDelegate {
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        let uploadProgress = Float(totalBytesSent) / Float(totalBytesExpectedToSend)
     }
 }

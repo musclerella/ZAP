@@ -16,7 +16,7 @@ public class Zap: NSObject {
     
     public static let `default` = Zap()
     
-    public init() {
+    public override init() {
     }
     
     public func post<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
@@ -36,7 +36,7 @@ public class Zap: NSObject {
     }
     
     public func uploadFile<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, fileURL: String, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        
+        return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.unknown.rawValue)))
     }
 }
 
