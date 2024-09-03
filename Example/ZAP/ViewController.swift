@@ -80,6 +80,14 @@ class ViewController: UIViewController {
             }
         }
     }
+    
+    private func uploadFiles() {
+        
+    }
+    
+    private func uploadFilesWithData() {
+        
+    }
 }
 
 //<NSHTTPURLResponse: 0x600000267120> { URL: https://localhost:443/post/one } { Status Code: 200, Headers {
