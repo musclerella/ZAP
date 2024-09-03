@@ -1,0 +1,117 @@
+# By default, SwiftLint uses a set of sensible default rules you can adjust:
+disabled_rules: # rule identifiers turned on by default to exclude from running
+  - colon
+  - comma
+  - control_statement
+  - anyobject_protocol
+  - inert_defer
+  - unused_capture_list
+  - file_name
+  - explicit_acl
+  - explicit_top_level_acl
+  - identifier_name
+  - sorted_enum_cases
+  - file_types_order
+  - vertical_whitespace_opening_braces
+  - redundant_type_annotation
+  - implicit_return
+  - no_magic_numbers
+  - object_literal
+  - required_deinit
+  - line_length
+  - no_grouping_extension
+  - conditional_returns_on_newline
+  - nslocalizedstring_require_bundle
+  - sorted_imports
+  - discouraged_optional_collection
+  - type_contents_order
+  - indentation_width
+  - trailing_closure
+  - unused_closure_parameter
+  - explicit_type_interface
+  - unused_optional_binding
+  - unavailable_function
+  - vertical_whitespace_between_cases
+  - legacy_random
+  - type_body_length
+  - function_body_length
+  - multiline_arguments_brackets
+  - vertical_parameter_alignment_on_call
+  - multiline_arguments
+  - strict_fileprivate
+  - explicit_init
+  - discouraged_optional_boolean
+  - file_length
+  - legacy_objc_type
+  - legacy_constructor
+  - convenience_type
+  - comment_spacing
+  - mark
+  - fatal_error_message
+  - explicit_enum_raw_value
+  - function_default_parameter_at_end
+  - void_function_in_ternary
+  - one_declaration_per_file
+  - accessibility_label_for_image
+  - accessibility_trait_for_button
+  - closure_body_length
+  - direct_return
+opt_in_rules: # some rules are turned off by default, so you need to opt-in
+  - all # find all the available rules by running: `swiftlint rules`
+
+# Alternatively, specify all rules explicitly by uncommenting this option:
+# only_rules: # delete `disabled_rules` & `opt_in_rules` if using this
+#   - empty_parameters
+#   - vertical_whitespace
+
+analyzer_rules: # rules run by `swiftlint analyze`
+  - explicit_self
+
+included: # case-sensitive paths to include during linting. `--path` is ignored if present
+  - ZAP
+excluded: # case-sensitive paths to ignore during linting. Takes precedence over `included`
+  - Carthage
+  - Pods
+  - Sources/ExcludedFolder
+  - Sources/ExcludedFile.swift
+  - Sources/*/ExcludedFile.swift # exclude files with a wildcard
+
+# If true, SwiftLint will not fail if no lintable files are found.
+allow_zero_lintable_files: false
+
+# If true, SwiftLint will treat all warnings as errors.
+strict: false
+
+# configurable rules can be customized from this configuration file
+# binary rules can set their severity level
+force_cast: warning # implicitly
+force_try:
+  severity: warning # explicitly
+# rules that have both warning and error levels, can set just the warning level
+# implicitly
+# line_length: 110
+# they can set both implicitly with an array
+# type_body_length:
+#   - 300 # warning
+#   - 400 # error
+# or they can set both explicitly
+#file_length:
+#  warning: 500
+#  error: 1200
+# naming rules can set warnings/errors for min_length and max_length
+# additionally they can set excluded names
+type_name:
+  min_length: 4 # only warning
+  max_length: # warning and error
+    warning: 40
+    error: 50
+  excluded: iPhone # excluded via string
+  allowed_symbols: ["_"] # these are allowed in type names
+# identifier_name:
+#   min_length: # only min_length
+#     error: 4 # only error
+#   excluded: # excluded via string array
+#     - id
+#     - URL
+#     - GlobalAPIKey
+reporter: "xcode" # reporter type (xcode, json, csv, checkstyle, codeclimate, junit, html, emoji, sonarqube, markdown, github-actions-logging, summary)

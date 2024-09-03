@@ -1,6 +1,8 @@
 PODS:
   - Alamofire (5.9.1)
-  - ZAP (0.1.0)
+  - SwiftLint (0.56.2)
+  - ZAP (0.1.0):
+    - SwiftLint
 
 DEPENDENCIES:
   - Alamofire
@@ -9,6 +11,7 @@ DEPENDENCIES:
 SPEC REPOS:
   trunk:
     - Alamofire
+    - SwiftLint
 
 EXTERNAL SOURCES:
   ZAP:
@@ -16,7 +19,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Alamofire: f36a35757af4587d8e4f4bfa223ad10be2422b8c
-  ZAP: ff4bd4a056c16f11008d556df14f913718370ffa
+  SwiftLint: bd7cfb914762ab5f0cbb632964849571db075706
+  ZAP: 1c4cc8e181cd18048197a57d89130d8c630988f9
 
 PODFILE CHECKSUM: 636f87c59e51e8eb3521b0f6b51e8b3e80f94d67
 
