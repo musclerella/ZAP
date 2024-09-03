@@ -16,20 +16,22 @@ class ViewController: UIViewController {
     let baseURL: String = "https://localhost:443"
     
     // Endpoints
-    let postOne: String = "/post/one"
+    let postOnePath: String = "/post/one"
+    let uploadFilePath: String = "/upload/file"
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
 //        postCall()
-        getCall()
+//        getCall()
+        uploadFile()
     }
     
     private func postCall() {
 
         let body = PostOneRequestBody(name: "Stephen Muscarella", age: 29)
         Task {
-            let result = try await ZAP.post(url: baseURL.appending(postOne), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
+            let result = try await ZAP.post(url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
             dump(result)
         }
     }
@@ -43,7 +45,39 @@ class ViewController: UIViewController {
         
         Task {
             let result = try await ZAP.get(url: baseURL, success: PostOneResponseBody.self, failure: ServerError.self, queryItems: queryItems, headers: nil)
-            dump(result)
+            switch result {
+            case .success(let success):
+                dump(success)
+            case .failure(let zapError):
+                switch zapError {
+                case .failureError(let failureError):
+                    dump(failureError)
+                case .internalError(let internalError):
+                    dump(internalError)
+                }
+            }
+        }
+    }
+    
+    private func uploadFile() {
+        
+        if let path = Bundle.main.url(forResource: "arctic_tundra", withExtension: "mp4") {
+            Task {
+                let result = try await ZAP.uploadFile(to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil) { progress in
+                    print("Progress: \((progress * 100).rounded(.toNearestOrEven))%")
+                }
+                switch result {
+                case .success(let success):
+                    dump(success)
+                case .failure(let zapError):
+                    switch zapError {
+                    case .failureError(let failureError):
+                        dump(failureError)
+                    case .internalError(let internalError):
+                        dump(internalError)
+                    }
+                }
+            }
         }
     }
 }
