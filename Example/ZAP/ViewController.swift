@@ -32,7 +32,17 @@ class ViewController: UIViewController {
         let body = PostOneRequestBody(name: "Stephen Muscarella", age: 29)
         Task {
             let result = try await ZAP.post(url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
-            dump(result)
+            switch result {
+            case .success(let success):
+                dump(success)
+            case .failure(let zapError):
+                switch zapError {
+                case .failureError(let failureError):
+                    dump(failureError)
+                case .internalError(let internalError):
+                    dump(internalError)
+                }
+            }
         }
     }
     
@@ -88,7 +98,17 @@ class ViewController: UIViewController {
     private func uploadFilesWithData() {
         
     }
+    
+    private func downloadFile() {
+        
+    }
+    
+    private func downloadFiles() {
+        
+    }
 }
+
+//TODO: Research pros/cons for adding a header key of `Connection` and using different values
 
 //<NSHTTPURLResponse: 0x600000267120> { URL: https://localhost:443/post/one } { Status Code: 200, Headers {
 //    Connection =     (
