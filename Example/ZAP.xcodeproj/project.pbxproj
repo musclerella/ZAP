@@ -14,7 +14,7 @@
 		607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDC1AFB9204008FA782 /* Images.xcassets */; };
 		607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDE1AFB9204008FA782 /* LaunchScreen.xib */; };
 		607FACEC1AFB9204008FA782 /* Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACEB1AFB9204008FA782 /* Tests.swift */; };
-		71566A8A2C864D4600B6D9CA /* arctic_tundra.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 71566A892C864D4600B6D9CA /* arctic_tundra.mp4 */; };
+		71566A8C2C86B8C900B6D9CA /* arctic_tundra.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 71566A8B2C86B8C900B6D9CA /* arctic_tundra.mp4 */; };
 		7167F4B52C8117B8001024F9 /* PostOneResponseBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7167F4B42C8117B8001024F9 /* PostOneResponseBody.swift */; };
 		7167F4B72C811835001024F9 /* ServerError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7167F4B62C811835001024F9 /* ServerError.swift */; };
 		716B062C2C7FFBA4009848C2 /* PostOneRequestBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B062B2C7FFBA4009848C2 /* PostOneRequestBody.swift */; };
@@ -46,7 +46,7 @@
 		607FACE51AFB9204008FA782 /* ZAP_Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZAP_Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACEA1AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		607FACEB1AFB9204008FA782 /* Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests.swift; sourceTree = "<group>"; };
-		71566A892C864D4600B6D9CA /* arctic_tundra.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = arctic_tundra.mp4; sourceTree = "<group>"; };
+		71566A8B2C86B8C900B6D9CA /* arctic_tundra.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = arctic_tundra.mp4; sourceTree = SOURCE_ROOT; };
 		7167F4B42C8117B8001024F9 /* PostOneResponseBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostOneResponseBody.swift; sourceTree = "<group>"; };
 		7167F4B62C811835001024F9 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
 		716B062B2C7FFBA4009848C2 /* PostOneRequestBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostOneRequestBody.swift; sourceTree = "<group>"; };
@@ -115,8 +115,8 @@
 				607FACD51AFB9204008FA782 /* AppDelegate.swift */,
 				607FACD71AFB9204008FA782 /* ViewController.swift */,
 				607FACD91AFB9204008FA782 /* Main.storyboard */,
-				71566A892C864D4600B6D9CA /* arctic_tundra.mp4 */,
 				607FACDC1AFB9204008FA782 /* Images.xcassets */,
+				71566A8B2C86B8C900B6D9CA /* arctic_tundra.mp4 */,
 				607FACDE1AFB9204008FA782 /* LaunchScreen.xib */,
 				607FACD31AFB9204008FA782 /* Supporting Files */,
 			);
@@ -277,7 +277,7 @@
 				607FACDB1AFB9204008FA782 /* Main.storyboard in Resources */,
 				607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */,
 				607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */,
-				71566A8A2C864D4600B6D9CA /* arctic_tundra.mp4 in Resources */,
+				71566A8C2C86B8C900B6D9CA /* arctic_tundra.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
