@@ -18,10 +18,5 @@
   "platforms": {
     "ios": "17.0"
   },
-  "source_files": "ZAP/Classes/**/*",
-  "dependencies": {
-    "SwiftLint": [
-
-    ]
-  }
+  "source_files": "ZAP/Classes/**/*"
 }

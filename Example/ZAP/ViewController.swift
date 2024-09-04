@@ -31,7 +31,7 @@ class ViewController: UIViewController {
 
         let body = PostOneRequestBody(name: "Stephen Muscarella", age: 29)
         Task {
-            let result = try await ZAP.post(url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
+            let result = await ZAP.send(.post, url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
             switch result {
             case .success(let success):
                 dump(success)
@@ -54,7 +54,7 @@ class ViewController: UIViewController {
         ]
         
         Task {
-            let result = try await ZAP.get(url: baseURL, success: PostOneResponseBody.self, failure: ServerError.self, queryItems: queryItems, headers: nil)
+            let result = await ZAP.send(.get, url: baseURL, success: PostOneResponseBody.self, failure: ServerError.self, queryItems: queryItems, headers: nil)
             switch result {
             case .success(let success):
                 dump(success)
@@ -73,7 +73,7 @@ class ViewController: UIViewController {
         
         if let path = Bundle.main.url(forResource: "arctic_tundra", withExtension: "mp4") {
             Task {
-                let result = try await ZAP.uploadFile(to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil) { progress in
+                let result = await ZAP.sendFile(.post, to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil) { progress in
                     print("Progress: \((progress * 100).rounded(.toNearestOrEven))%")
                 }
                 switch result {
@@ -90,11 +90,7 @@ class ViewController: UIViewController {
             }
         }
     }
-    
-    private func uploadFiles() {
-        
-    }
-    
+
     private func uploadFilesWithData() {
         
     }

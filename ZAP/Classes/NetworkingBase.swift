@@ -8,14 +8,25 @@
 import Foundation
 
 enum NetworkTasks {
+    case multipartFormData
     case uploadSingleFile
-    case standard
 }
 
 public class NetworkingBase: NSObject {
     
-    func buildRequest(task: NetworkTasks, method: HTTPMethod, url: URL, body: Encodable? = nil, headers: [String: String]? = nil) -> (URLRequest?, InternalError?) {
-        // 2. Build Request Body
+    func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, InternalError?) {
+        if let queryItems, var urlComponents = URLComponents(string: url) {
+            urlComponents.percentEncodedQueryItems = queryItems.percentEncoded()
+            return (urlComponents.url, nil)
+        } else if let url = URL(string: url) {
+            return (url, nil)
+        } else {
+            let internalError = InternalError(debugMsg: ZAPErrorMsg.malformedURL.rawValue)
+            return (nil, internalError)
+        }
+    }
+    
+    func buildRequest(method: HTTPMethod, url: URL, body: Encodable? = nil, headers: [String: String]? = nil) -> (URLRequest?, InternalError?) {
         do {
             var httpBody: Data?
             if let body {
@@ -25,16 +36,7 @@ public class NetworkingBase: NSObject {
             urlRequest.httpMethod = method.rawValue.uppercased()
             urlRequest.allHTTPHeaderFields = headers
             urlRequest.httpBody = httpBody
-            
-            if headers == nil {
-                switch task {
-                case .uploadSingleFile:
-                    urlRequest.addValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
-                case .standard:
-                    break
-                }
-            }
-
+    
             return (urlRequest, nil)
             
         } catch let error as EncodingError {
@@ -52,7 +54,7 @@ public class NetworkingBase: NSObject {
         let urlResponse = response.1
         let responseData = response.0
         
-        print(urlResponse)
+        debugPrint(urlResponse)
 
         guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
             let failureResult = handleFailure(failure, responseData: responseData)
@@ -75,7 +77,6 @@ public class NetworkingBase: NSObject {
     }
     
     private func handleFailure<F: Decodable>(_ failure: F.Type, responseData: Data) -> ZAPError<Any> {
-        // Failure
         do {
             let failure = try JSONDecoder().decode(failure, from: responseData)
             return ZAPError.failureError(failure)
@@ -90,7 +91,6 @@ public class NetworkingBase: NSObject {
     }
 
     private func handleSuccess<S: Decodable>(_ success: S.Type, responseData: Data) -> (S?, InternalError?) {
-        // Success
         do {
             let success = try JSONDecoder().decode(success, from: responseData)
             return (success, nil)

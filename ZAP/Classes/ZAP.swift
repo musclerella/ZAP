@@ -12,74 +12,30 @@ import Foundation
 //TODO: Make multiple function signatures for each HTTPMethod
 //TODO: Multipart file upload for files larger than 100 MB
 //TODO: Add support to all public method signatures for the keyword 'static'
+//TODO: Add support to return an array of progress bars that are attached to naming identifier(s) (IS THIS NEEDED OR SHOULD THIS REQUIREMENT BE PERFORMED WITH SINGLE FILE UPLOAD APIs?
 
 //MARK: Public Methods
 public class Zap: NetworkingBase {
 
     public static let `default` = Zap()
-
-    public func post<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        return await buildAndExecuteRequest(method: .post, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+    
+    public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
+        return await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
     }
     
-    public func get<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        return await buildAndExecuteRequest(method: .get, url: url, success: success, failure: failure, queryItems: queryItems, headers: headers)
-    }
-    
-    public func put<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        return await buildAndExecuteRequest(method: .put, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
-    }
-    
-    public func delete<S: Decodable, F: Decodable>(url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async throws -> Result<S, ZAPError<F>> {
-        return await buildAndExecuteRequest(method: .delete, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
-    }
-    
-    public func uploadFile<S: Decodable, F: Decodable>(to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: UploadProgress? = nil) async throws -> Result<S, ZAPError<F>> {
-        // 1. Build Server URL
-        let serverURLResult = buildURL(url: url, queryItems: queryItems)
-        guard let serverURL = serverURLResult.0 else {
-            if let internalError = serverURLResult.1 {
-                return .failure(ZAPError.internalError(internalError))
-            } else {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the server URL.")))
-            }
-        }
-        // 3. Upload File
+    public func sendFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         let fileUploader = FileUploader()
-        return await fileUploader.uploadFile(to: serverURL, success: success, failure: failure, from: fileURL, headers: headers, progress: progress)
+        return await fileUploader.uploadFile(httpMethod, to: url, success: success, failure: failure, fileURL: fileURL, headers: headers, progress: progress)
     }
-    
-    public func updateFile<S: Decodable, F: Decodable>(to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: UploadProgress? = nil) async throws -> Result<S, ZAPError<F>> {
-        // 1. Build Server URL
-        let serverURLResult = buildURL(url: url, queryItems: queryItems)
-        guard let serverURL = serverURLResult.0 else {
-            if let internalError = serverURLResult.1 {
-                return .failure(ZAPError.internalError(internalError))
-            } else {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the server URL.")))
-            }
-        }
-        // 3. Update File
+        
+    func sendFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async throws -> Result<S, ZAPError<F>> {
         let fileUploader = FileUploader()
-        return await fileUploader.updateFile(to: serverURL, success: success, failure: failure, from: fileURL, headers: headers, progress: progress)
+        return await fileUploader.uploadFilesWithData(httpMethod, to: url, success: success, failure: failure, files: files, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
 }
 
 //MARK: Private Methods
 extension Zap {
-    
-    private func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, InternalError?) {
-        // 1. Build URL
-        if let queryItems, var urlComponents = URLComponents(string: url) {
-            urlComponents.percentEncodedQueryItems = queryItems.percentEncoded()
-            return (urlComponents.url, nil)
-        } else if let url = URL(string: url) {
-            return (url, nil)
-        } else {
-            let internalError = InternalError(debugMsg: ZAPErrorMsg.malformedURL.rawValue)
-            return (nil, internalError)
-        }
-    }
 
     private func buildAndExecuteRequest<S: Decodable, F: Decodable>(method: HTTPMethod, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
         // 1. Build URL
@@ -91,8 +47,8 @@ extension Zap {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the URL.")))
             }
         }
-        
-        let requestResult = buildRequest(task: .standard, method: method, url: url, body: body, headers: headers)
+        // 2. Build Request
+        let requestResult = buildRequest(method: method, url: url, body: body, headers: headers)
         guard let request = requestResult.0 else {
             if let internalError = requestResult.1 {
                 return .failure(ZAPError.internalError(internalError))
@@ -100,6 +56,7 @@ extension Zap {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
             }
         }
+        // 3. Perform Request and Parse Response
         return await performRequestAndParseResponse(urlRequest: request, success: success, failure: failure)
     }
 
