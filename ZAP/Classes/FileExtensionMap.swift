@@ -9,7 +9,7 @@ import Foundation
 
 // THIS FILE SHOULD REFLECT THE SAME MIME TYPE VALUES as the `MimeType` enum
 struct FileExtensionMap {
-    static let extensions: [FileExtension: MimeType] = [
+    private static let extensions: [FileExtension: MimeType] = [
         FileExtension.aac: MimeType.aac,
         FileExtension.abw: MimeType.abw,
         FileExtension.apng: MimeType.apng,
@@ -86,6 +86,20 @@ struct FileExtensionMap {
         FileExtension.zip: MimeType.zip,
         FileExtension._7z: MimeType._7z
     ]
+    
+    static func getMimeTypeFromExtension(_ fileExtension: FileExtension) -> MimeType? {
+        return FileExtensionMap.extensions[fileExtension]
+    }
+    
+    static func getExtensionFromMimeType(_ mimeType: MimeType) -> FileExtension? {
+        return FileExtensionMap.extensions.key(forValue: mimeType)
+    }
+}
+
+extension Dictionary where Value: Equatable {
+    func key(forValue val: Value) -> Key? {
+        return first(where: { $1 == val })?.key
+    }
 }
 
 enum FileExtension: String {
@@ -161,5 +175,4 @@ enum FileExtension: String {
 //    case _3gp = "video/3gpp" //TODO: If video is not present need to use audio version
 //    case _3g2 = "video/3gpp2" //TODO: If video is not present need to use audio version
     case _7z
-
 }
