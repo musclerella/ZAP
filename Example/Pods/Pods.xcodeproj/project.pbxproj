@@ -38,6 +38,7 @@
 		71791CBE2C87ECCA00BC7EF5 /* HTTPHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CBD2C87ECCA00BC7EF5 /* HTTPHeader.swift */; };
 		71791CC22C87FAFC00BC7EF5 /* MimeType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CC12C87FAFC00BC7EF5 /* MimeType.swift */; };
 		71791CC62C88109E00BC7EF5 /* Data+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CC52C88109E00BC7EF5 /* Data+Ext.swift */; };
+		7197F7A72C8A8AF400CAA162 /* FileExtensionMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7197F7A62C8A8AF400CAA162 /* FileExtensionMap.swift */; };
 		72C19C762FADC82517C344E9F47D7E50 /* AlamofireExtended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8260CD0AB554149D97459BBCCAEBCE51 /* AlamofireExtended.swift */; };
 		7736753FD12725F30BDBA68FC202D55C /* Pods-ZAP_Example-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = B1BBADC7AB2C71129D3271F05919B71E /* Pods-ZAP_Example-dummy.m */; };
 		794FC38D15336AB502B73B012005E9BD /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459AF933A0209EE5CFF2BB424F3B141F /* Validation.swift */; };
@@ -156,6 +157,7 @@
 		71791CC12C87FAFC00BC7EF5 /* MimeType.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MimeType.swift; path = ZAP/Classes/MimeType.swift; sourceTree = "<group>"; };
 		71791CC52C88109E00BC7EF5 /* Data+Ext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Data+Ext.swift"; path = "ZAP/Classes/Data+Ext.swift"; sourceTree = "<group>"; };
 		718922B1D9F44E08C6FEA24F7A518E3E /* Pods-ZAP_Tests-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-ZAP_Tests-umbrella.h"; sourceTree = "<group>"; };
+		7197F7A62C8A8AF400CAA162 /* FileExtensionMap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = FileExtensionMap.swift; path = ZAP/Classes/FileExtensionMap.swift; sourceTree = "<group>"; };
 		786E57F4F2DA1575D23FC22FE0A43E59 /* WebSocketRequest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebSocketRequest.swift; path = Source/Core/WebSocketRequest.swift; sourceTree = "<group>"; };
 		7D644A09AB7652E50BCE95C83E0FDBCF /* Pods-ZAP_Example-acknowledgements.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Pods-ZAP_Example-acknowledgements.plist"; sourceTree = "<group>"; };
 		807590B1521F35F00E4100193FDA7177 /* RedirectHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RedirectHandler.swift; path = Source/Features/RedirectHandler.swift; sourceTree = "<group>"; };
@@ -271,6 +273,7 @@
 		1E37CA0BF83EF40C90684776FD695004 /* ZAP */ = {
 			isa = PBXGroup;
 			children = (
+				7197F7A62C8A8AF400CAA162 /* FileExtensionMap.swift */,
 				71791CC52C88109E00BC7EF5 /* Data+Ext.swift */,
 				71791CC12C87FAFC00BC7EF5 /* MimeType.swift */,
 				71791CBD2C87ECCA00BC7EF5 /* HTTPHeader.swift */,
@@ -686,6 +689,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7197F7A72C8A8AF400CAA162 /* FileExtensionMap.swift in Sources */,
 				8C921C569051FF272924A9C22E7E7649 /* Entry.swift in Sources */,
 				896350515D02B12A137B16D235C36359 /* FileUpload.swift in Sources */,
 				71791CBE2C87ECCA00BC7EF5 /* HTTPHeader.swift in Sources */,
