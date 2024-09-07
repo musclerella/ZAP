@@ -14,6 +14,8 @@ import Foundation
 //TODO: Add support to all public method signatures for the keyword 'static'
 //TODO: Add support to return an array of progress bars that are attached to naming identifier(s) (IS THIS NEEDED OR SHOULD THIS REQUIREMENT BE PERFORMED WITH SINGLE FILE UPLOAD APIs?
 
+public typealias MeteoriteURL = URL
+
 //MARK: Public Methods
 public class Zap: NetworkingBase {
 
@@ -27,11 +29,11 @@ public class Zap: NetworkingBase {
         return await FileTransfer().uploadFile(httpMethod, to: url, success: success, failure: failure, fileURL: fileURL, queryItems: queryItems, headers: headers, progress: progress)
     }
         
-    func sendFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
+    public func sendFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         return await FileTransfer().uploadFilesWithData(httpMethod, to: url, success: success, failure: failure, files: files, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
     
-    public func receiveFile(_ httpMethod: HTTPMethod = .get, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<URL, ZAPError<Any>> {
+    public func receiveFile(_ httpMethod: HTTPMethod = .get, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<MeteoriteURL, ZAPError<Any>> {
         return await FileTransfer().downloadFile(httpMethod, from: url, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
 }
@@ -63,11 +65,10 @@ extension Zap {
     }
 
     private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
-        // 3. Perform Request
         let urlSession = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
         do {
             let response = try await urlSession.data(for: urlRequest)
-            return parseResponse(response: response, success: success, failure: failure)
+            return parseResponse(response, success: success, failure: failure)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }

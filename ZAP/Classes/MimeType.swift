@@ -8,7 +8,7 @@
 import Foundation
 
 // THIS FILE SHOULD REFLECT THE SAME MIME TYPE VALUES as the `FileExtensionMap` dictionary values
-enum MimeType: String, CaseIterable {
+public enum MimeType: String, CaseIterable {
     case aac = "audio/aac"
     case abw = "application/x-abiword"
     case apng = "image/apng"
