@@ -17,9 +17,9 @@ import Foundation
 public typealias MeteoriteURL = URL
 
 //MARK: Public Methods
-public class Zap: NetworkingBase {
+public class ZAP: NetworkingBase {
 
-    public static let `default` = Zap()
+    public static let `default` = ZAP()
     
     public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
@@ -39,7 +39,7 @@ public class Zap: NetworkingBase {
 }
 
 //MARK: Private Methods
-extension Zap {
+extension ZAP {
 
     private func buildAndExecuteRequest<S: Decodable, F: Decodable>(method: HTTPMethod, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
         // 1. Build URL
@@ -76,7 +76,7 @@ extension Zap {
 }
 
 //MARK: URLSessionDelegate
-extension Zap: URLSessionDelegate {
+extension ZAP: URLSessionDelegate {
         
 //    public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
 //        

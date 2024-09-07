@@ -7,4 +7,4 @@
 
 import Foundation
 
-public let ZAP = Zap.default
+public let Zap = ZAP.default
