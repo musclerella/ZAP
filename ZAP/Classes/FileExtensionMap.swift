@@ -87,12 +87,9 @@ struct FileExtensionMap {
         FileExtension._7z: MimeType._7z
     ]
     
-    static func getMimeTypeFromExtension(_ fileExtension: FileExtension) -> MimeType? {
-        return FileExtensionMap.extensions[fileExtension]
-    }
-    
-    static func getExtensionFromMimeType(_ mimeType: MimeType) -> FileExtension? {
-        return FileExtensionMap.extensions.key(forValue: mimeType)
+    static func getMimeTypeFromExtension(_ fileExtension: String) -> String? {
+        guard let key = FileExtension(rawValue: fileExtension) else { return nil }
+        return FileExtensionMap.extensions[key]?.rawValue
     }
 }
 

@@ -23,14 +23,16 @@ public class Zap: NetworkingBase {
         return await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
     }
     
-    public func sendFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
-        let fileUploader = FileUploader()
-        return await fileUploader.uploadFile(httpMethod, to: url, success: success, failure: failure, fileURL: fileURL, headers: headers, progress: progress)
+    public func sendFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
+        return await FileTransfer().uploadFile(httpMethod, to: url, success: success, failure: failure, fileURL: fileURL, queryItems: queryItems, headers: headers, progress: progress)
     }
         
     func sendFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
-        let fileUploader = FileUploader()
-        return await fileUploader.uploadFilesWithData(httpMethod, to: url, success: success, failure: failure, files: files, body: body, queryItems: queryItems, headers: headers, progress: progress)
+        return await FileTransfer().uploadFilesWithData(httpMethod, to: url, success: success, failure: failure, files: files, body: body, queryItems: queryItems, headers: headers, progress: progress)
+    }
+    
+    public func receiveFile(_ httpMethod: HTTPMethod = .get, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<URL, ZAPError<Any>> {
+        return await FileTransfer().downloadFile(httpMethod, from: url, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
 }
 

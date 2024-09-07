@@ -10,7 +10,7 @@ import UniformTypeIdentifiers
 
 public typealias DataTransferProgress = (Float) -> Void
 
-class FileUploader: NetworkingBase {
+class FileTransfer: NetworkingBase {
     
     let session: URLSession
     var progress: DataTransferProgress?
@@ -20,17 +20,21 @@ class FileUploader: NetworkingBase {
         super.init()
     }
         
-    func uploadFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress?) async -> Result<S, ZAPError<F>> {
+    func uploadFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequestForSingleFileUpload(httpMethod, to: url, success: success, failure: failure, fileURL: fileURL, queryItems: queryItems, headers: headers, progress: progress)
     }
 
     func uploadFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequestForMultipartFormData(httpMethod, to: url, success: success, failure: failure, files: files, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
+    
+    func downloadFile(_ httpMethod: HTTPMethod, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<URL, ZAPError<Any>> {
+        return await buildAndExecuteRequestForSingleFileDownload(httpMethod, from: url, body: body, queryItems: queryItems, headers: headers, progress: progress)
+    }
 }
 
 //MARK: Private Methods
-extension FileUploader {
+extension FileTransfer {
     
     private func createMultipartBody(boundary: String, files: [ZAPFile], formData: [String: Any]? = nil) -> Data {
         var body = Data()
@@ -101,6 +105,8 @@ extension FileUploader {
         let pathExtension = url.pathExtension
         if let mimeType = UTType(filenameExtension: pathExtension)?.preferredMIMEType {
             return mimeType
+        } else if let mimeType = FileExtensionMap.getMimeTypeFromExtension(pathExtension) {
+            return mimeType
         }
         return MimeType.bin.rawValue
     }
@@ -112,11 +118,63 @@ extension FileUploader {
                 urlRequest.addValue(HTTPHeader.Value.ContentType.octetStream.rawValue, forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
             }
         case .multipartFormData:
-            if urlRequest.allHTTPHeaderFields?[HTTPHeader.Key.contentType.rawValue] == nil {
-                urlRequest.addValue(HTTPHeader.Value.ContentType.multipartFormData.rawValue.appending(boundary), forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
-            }
+            urlRequest.addValue(HTTPHeader.Value.ContentType.multipartFormData.rawValue.appending(boundary), forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
         }
         return urlRequest
+    }
+    
+    private func buildAndExecuteRequestForSingleFileDownload(_ httpMethod: HTTPMethod, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<URL, ZAPError<Any>> {
+        self.progress = progress
+        // 1. Build server url
+        let serverURLResult = buildURL(url: url, queryItems: queryItems)
+        guard let serverURL = serverURLResult.0 else {
+            if let internalError = serverURLResult.1 {
+                return .failure(ZAPError.internalError(internalError))
+            } else {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the server URL.")))
+            }
+        }
+        // 2. Build request
+        let requestResult = buildRequest(method: httpMethod, url: serverURL, body: body, headers: headers)
+        guard var request = requestResult.0 else {
+            if let internalError = requestResult.1 {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: internalError.localizedDescription)))
+            } else {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
+            }
+        }
+        // 3. Perform request
+        return await performRequestAndParseResponseForSingleFileDownload(urlRequest: request)
+    }
+    
+    private func buildAndExecuteRequestForSingleFileUpload<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress?) async -> Result<S, ZAPError<F>> {
+        self.progress = progress
+        // 1. Build server url
+        let serverURLResult = buildURL(url: url, queryItems: queryItems)
+        guard let serverURL = serverURLResult.0 else {
+            if let internalError = serverURLResult.1 {
+                return .failure(ZAPError.internalError(internalError))
+            } else {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the server URL.")))
+            }
+        }
+        // 2. Get file data from local file URL
+        guard let fileData = try? Data(contentsOf: fileURL) else {
+            return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.failedToReadDataFromFilePath.rawValue)))
+        }
+        // 3. Build request
+        let requestResult = buildRequest(method: httpMethod, url: serverURL, body: nil, headers: headers)
+        guard var request = requestResult.0 else {
+            if let internalError = requestResult.1 {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: internalError.localizedDescription)))
+            } else {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
+            }
+        }
+        // 4. Add default http headers if not provided
+        request = addDefaultHeadersIfAbsent(for: .uploadSingleFile, urlRequest: &request)
+        // 5. Perform request
+        return await performRequestAndParseResponseForSingleFileUpload(urlRequest: request, success: success, failure: failure, fileData: fileData)
     }
     
     private func buildAndExecuteRequestForMultipartFormData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress?) async -> Result<S, ZAPError<F>> {
@@ -161,53 +219,31 @@ extension FileUploader {
         return await performRequestAndParseResponseForMultipartFormData(urlRequest: request, success: success, failure: failure)
     }
     
-    private func buildAndExecuteRequestForSingleFileUpload<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress?) async -> Result<S, ZAPError<F>> {
-        self.progress = progress
-        // 1. Build server url
-        let serverURLResult = buildURL(url: url, queryItems: queryItems)
-        guard let serverURL = serverURLResult.0 else {
-            if let internalError = serverURLResult.1 {
-                return .failure(ZAPError.internalError(internalError))
-            } else {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the server URL.")))
-            }
-        }
-        // 2. Get file data from local file URL
-        guard let fileData = try? Data(contentsOf: fileURL) else {
-            return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.failedToReadDataFromFilePath.rawValue)))
-        }
-        // 3. Build request
-        let requestResult = buildRequest(method: httpMethod, url: serverURL, body: nil, headers: headers)
-        guard var request = requestResult.0 else {
-            if let internalError = requestResult.1 {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: internalError.localizedDescription)))
-            } else {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
-            }
-        }
-        // 4. Add default http headers if not provided
-        request = addDefaultHeadersIfAbsent(for: .uploadSingleFile, urlRequest: &request)
-        // 5. Perform request
-        return await performRequestAndParseResponseForSingleFile(urlRequest: request, success: success, failure: failure, fileData: fileData)
-    }
-    
-    private func performRequestAndParseResponseForMultipartFormData<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type)  async -> Result<S, ZAPError<F>> {
-        // Perform Request
+    private func performRequestAndParseResponseForSingleFileDownload(urlRequest: URLRequest) async -> Result<URL, ZAPError<Any>> {
         let session = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
         do {
-            let response = try await session.data(for: urlRequest)
-            return parseResponse(response: response, success: success, failure: failure)
+            let response = try await session.download(for: urlRequest, delegate: self)
+            return parseResponse(response)
+        } catch {
+            return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+        }
+    }
+        
+    private func performRequestAndParseResponseForSingleFileUpload<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type, fileData: Data) async -> Result<S, ZAPError<F>> {
+        let session = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
+        do {
+            let response = try await session.upload(for: urlRequest, from: fileData, delegate: self)
+            return parseResponse(response, success: success, failure: failure)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }
     }
 
-    private func performRequestAndParseResponseForSingleFile<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type, fileData: Data) async -> Result<S, ZAPError<F>> {
-        // Perform Request
+    private func performRequestAndParseResponseForMultipartFormData<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type)  async -> Result<S, ZAPError<F>> {
         let session = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
         do {
-            let response = try await session.upload(for: urlRequest, from: fileData, delegate: self)
-            return parseResponse(response: response, success: success, failure: failure)
+            let response = try await session.data(for: urlRequest)
+            return parseResponse(response, success: success, failure: failure)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }
@@ -215,7 +251,7 @@ extension FileUploader {
 }
 
 //MARK: URLSessionTaskDelegate
-extension FileUploader: URLSessionTaskDelegate {
+extension FileTransfer: URLSessionTaskDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
         progress?(Float(totalBytesSent) / Float(totalBytesExpectedToSend))
@@ -236,7 +272,7 @@ extension FileUploader: URLSessionTaskDelegate {
 }
 
 //MARK: URLSessionDelegate
-extension FileUploader: URLSessionDelegate {
+extension FileTransfer: URLSessionDelegate {
     
 //    //TODO: Does this method hit only outside of URLSessionTask file uploads or for both?
 //    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {

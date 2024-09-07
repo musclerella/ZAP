@@ -8,8 +8,8 @@
 import Foundation
 
 enum NetworkTasks {
-    case multipartFormData
     case uploadSingleFile
+    case multipartFormData
 }
 
 public class NetworkingBase: NSObject {
@@ -49,7 +49,21 @@ public class NetworkingBase: NSObject {
         }
     }
     
-    func parseResponse<S: Decodable, F: Decodable>(response: (Data, URLResponse), success: S.Type, failure: F.Type) -> Result<S, ZAPError<F>> {
+    func parseResponse(_ response: (URL, URLResponse)) -> Result<URL, ZAPError<Any>> {
+        
+        let meteoriteURL = response.0
+        let urlResponse = response.1
+        
+        debugPrint(urlResponse)
+
+        guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
+            let urlString = urlResponse.url?.absoluteString ?? ""
+            return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.failedToDownloadFile.rawValue + urlString)))
+        }
+        return .success(meteoriteURL)
+    }
+    
+    func parseResponse<S: Decodable, F: Decodable>(_ response: (Data, URLResponse), success: S.Type, failure: F.Type) -> Result<S, ZAPError<F>> {
         
         let urlResponse = response.1
         let responseData = response.0

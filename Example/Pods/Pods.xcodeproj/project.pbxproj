@@ -46,7 +46,7 @@
 		7AE2E0B382A14D58BE7DAA0C852DCD02 /* ServerTrustEvaluation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041DF27B8B1815AAEF09CB48AB68D5F4 /* ServerTrustEvaluation.swift */; };
 		84BEB9E439780B1E0DEF56459E3D3352 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FD0CE05D5D076B1B5190EE5DF97FD54E /* Foundation.framework */; };
 		887DB52C63E52FBD3B88F42DD8CFB421 /* RequestCompression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6FB51379A954FE30C990BCBE620354 /* RequestCompression.swift */; };
-		896350515D02B12A137B16D235C36359 /* FileUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D009959921B1C3865FA04AE625C05DD /* FileUpload.swift */; };
+		896350515D02B12A137B16D235C36359 /* FileTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D009959921B1C3865FA04AE625C05DD /* FileTransfer.swift */; };
 		89BBF9252A499A61984D20754AFF661F /* Pods-ZAP_Tests-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = 66EE35959912DA6F6E408F726912C608 /* Pods-ZAP_Tests-dummy.m */; };
 		8C921C569051FF272924A9C22E7E7649 /* Entry.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8FDA9738BBB2660B94434A2F89D530 /* Entry.swift */; };
 		8DD46EE7FB9503E7634E929DDE1CBA31 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC8041970D88C4AB47B7F85ADD5B689 /* Notifications.swift */; };
@@ -132,7 +132,7 @@
 		370C7E12F73AE24AD12FE389A381153D /* ZAP.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = ZAP.debug.xcconfig; sourceTree = "<group>"; };
 		3B4B512BA32260697DF1465EF0D26E79 /* DataRequest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DataRequest.swift; path = Source/Core/DataRequest.swift; sourceTree = "<group>"; };
 		3CA812E7B0B11BC74C0AB7C8FDD7E383 /* CachedResponseHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CachedResponseHandler.swift; path = Source/Features/CachedResponseHandler.swift; sourceTree = "<group>"; };
-		3D009959921B1C3865FA04AE625C05DD /* FileUpload.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileUpload.swift; path = ZAP/Classes/FileUpload.swift; sourceTree = "<group>"; };
+		3D009959921B1C3865FA04AE625C05DD /* FileTransfer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileTransfer.swift; path = ZAP/Classes/FileTransfer.swift; sourceTree = "<group>"; };
 		3EF2A1F3D7FAC41574E30ED29A072085 /* NetworkingBase.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NetworkingBase.swift; path = ZAP/Classes/NetworkingBase.swift; sourceTree = "<group>"; };
 		423CCA7566D311F10C60D6C94C062C91 /* MultipartFormData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MultipartFormData.swift; path = Source/Features/MultipartFormData.swift; sourceTree = "<group>"; };
 		434EBB57C4A1074D4C8805C83B76F31F /* URLEncoding.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = URLEncoding.swift; path = ZAP/Classes/URLEncoding.swift; sourceTree = "<group>"; };
@@ -278,7 +278,7 @@
 				71791CC12C87FAFC00BC7EF5 /* MimeType.swift */,
 				71791CBD2C87ECCA00BC7EF5 /* HTTPHeader.swift */,
 				EB8FDA9738BBB2660B94434A2F89D530 /* Entry.swift */,
-				3D009959921B1C3865FA04AE625C05DD /* FileUpload.swift */,
+				3D009959921B1C3865FA04AE625C05DD /* FileTransfer.swift */,
 				27599C4EB568196BE5B704C19990E6DA /* HTTPMethod.swift */,
 				3EF2A1F3D7FAC41574E30ED29A072085 /* NetworkingBase.swift */,
 				434EBB57C4A1074D4C8805C83B76F31F /* URLEncoding.swift */,
@@ -691,7 +691,7 @@
 			files = (
 				7197F7A72C8A8AF400CAA162 /* FileExtensionMap.swift in Sources */,
 				8C921C569051FF272924A9C22E7E7649 /* Entry.swift in Sources */,
-				896350515D02B12A137B16D235C36359 /* FileUpload.swift in Sources */,
+				896350515D02B12A137B16D235C36359 /* FileTransfer.swift in Sources */,
 				71791CBE2C87ECCA00BC7EF5 /* HTTPHeader.swift in Sources */,
 				71791CC62C88109E00BC7EF5 /* Data+Ext.swift in Sources */,
 				ACE2F869E1154023BBE2D8708BA2EE21 /* HTTPMethod.swift in Sources */,

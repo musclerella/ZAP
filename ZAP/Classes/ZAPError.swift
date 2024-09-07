@@ -20,4 +20,5 @@ enum ZAPErrorMsg: String, Error {
     case malformedURL = "The URL is malformed"
     case unknown = "An unknown error occurred"
     case failedToReadDataFromFilePath = "Failed to read data from file path"
+    case failedToDownloadFile = "Failed to download file at URL = "
 }

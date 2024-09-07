@@ -8,6 +8,6 @@
 import Foundation
 
 enum ZAPFile {
-    case url(_ fileURL: URL, serverFileTypeIdentifier: String, mimeType: MimeType? = nil)
-    case data(_ fileData: Data, serverFileTypeIdentifier: String, mimeType: MimeType = .bin)
+    case url(_ fileURL: URL, serverFileTypeIdentifier: String = "", mimeType: MimeType? = nil)
+    case data(_ fileData: Data, serverFileTypeIdentifier: String = "", mimeType: MimeType = .bin)
 }
