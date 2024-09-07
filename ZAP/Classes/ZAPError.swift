@@ -7,6 +7,7 @@
 
 import Foundation
 
+// This enum contains the possible errors and brings explicit visibility into what data can be accessed from which error
 public enum ZAPError<F>: Error {
     case failureError(_ error: F)
     case internalError(_ error: InternalError)
