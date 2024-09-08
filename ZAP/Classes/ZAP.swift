@@ -20,21 +20,40 @@ public typealias MeteoriteURL = URL
 public class ZAP: NetworkingBase {
 
     public static let `default` = ZAP()
-    
+            
+    //MARK: Primary Public Signatures
     public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
     }
-    
+
     public func sendFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         return await FileTransfer().uploadFile(httpMethod, to: url, success: success, failure: failure, fileURL: fileURL, queryItems: queryItems, headers: headers, progress: progress)
     }
-        
+
     public func sendFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         return await FileTransfer().uploadFilesWithData(httpMethod, to: url, success: success, failure: failure, files: files, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
-    
+
     public func receiveFile(_ httpMethod: HTTPMethod = .get, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<MeteoriteURL, ZAPError<Any>> {
         return await FileTransfer().downloadFile(httpMethod, from: url, body: body, queryItems: queryItems, headers: headers, progress: progress)
+    }
+    
+    //MARK: Chained Methods
+    public func auth(user: String, pass: String) -> ZAP {
+        let credentials = "\(user):\(pass)"
+        let encodedCredentials = Data(credentials.utf8).base64EncodedString()
+        self.basicAuthCredentials = encodedCredentials
+        return self
+    }
+    
+    public func auth() -> ZAP {
+        // Use global auth configuration
+        return self
+    }
+    
+    public func cache(policy: NSURLRequest.CachePolicy = .useProtocolCachePolicy) -> ZAP {
+        self.cachePolicy = policy
+        return self
     }
 }
 
@@ -52,22 +71,22 @@ extension ZAP {
             }
         }
         // 2. Build Request
-        let requestResult = buildRequest(method: method, url: url, body: body, headers: headers)
-        guard let request = requestResult.0 else {
+        let requestResult = buildRequest(task: .standard, method: method, url: url, body: body, headers: headers)
+        guard var request = requestResult.0 else {
             if let internalError = requestResult.1 {
                 return .failure(ZAPError.internalError(internalError))
             } else {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
             }
         }
-        // 3. Perform Request and Parse Response
-        return await performRequestAndParseResponse(urlRequest: request, success: success, failure: failure)
+        // 3. Perform request and parse response
+        return await performRequestAndParseResponse(urlRequest: &request, success: success, failure: failure)
     }
 
-    private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
-        let urlSession = URLSession(configuration: URLSessionConfiguration.default, delegate: self, delegateQueue: nil)
+    private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
         do {
-            let response = try await urlSession.data(for: urlRequest)
+            let session = configureURLSessionAndClearChainedConfigurations(delegate: self)
+            let response = try await session.data(for: urlRequest)
             return parseResponse(response, success: success, failure: failure)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))

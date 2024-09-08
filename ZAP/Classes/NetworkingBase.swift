@@ -7,12 +7,50 @@
 
 import Foundation
 
-enum NetworkTasks {
+enum NetworkTask {
     case uploadSingleFile
+    case downloadSingleFile
     case multipartFormData
+    case standard
 }
 
 public class NetworkingBase: NSObject {
+    
+    let cache: URLCache
+    
+    // Chained configurations
+    var basicAuthCredentials: String?
+    var cachePolicy: NSURLRequest.CachePolicy?
+    
+    var isCacheEnabled: Bool {
+        return cachePolicy != nil
+    }
+    
+    override init() {
+        let memoryCapacity = 100 * 1024 * 1024 // MB
+        let diskCapacity = 500 * 1024 * 1024 // MB
+        self.cache = URLCache(memoryCapacity: memoryCapacity, diskCapacity: diskCapacity, diskPath: "ZAPNetworkCache")
+    }
+
+    //MARK: Common Methods
+    func configureURLSessionAndClearChainedConfigurations(delegate: URLSessionDelegate) -> URLSession {
+        // 1. Configure cache
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = isCacheEnabled ? cache : nil
+        configuration.requestCachePolicy = cachePolicy ?? .useProtocolCachePolicy
+        // 2. Clear chained configurations
+        clearChainedConfigurations()
+        
+        return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+    }
+    
+    
+    func clearChainedConfigurations() {
+        // Clears localized chained configurations for a request. Applys to singleton and static based implementations so subsequent requests do not pick up previously used configurations
+        // This should NOT be needed for instance based implementations since a different ZAP instance is created for every single request
+        basicAuthCredentials = nil
+        cachePolicy = nil
+    }
     
     func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, InternalError?) {
         if let queryItems, var urlComponents = URLComponents(string: url) {
@@ -25,8 +63,8 @@ public class NetworkingBase: NSObject {
             return (nil, internalError)
         }
     }
-    
-    func buildRequest(method: HTTPMethod, url: URL, body: Encodable? = nil, headers: [String: String]? = nil) -> (URLRequest?, InternalError?) {
+
+    func buildRequest(task: NetworkTask, method: HTTPMethod, url: URL, body: Encodable? = nil, headers: [String: String]? = nil, boundary: String = "") -> (URLRequest?, InternalError?) {
         do {
             var httpBody: Data?
             if let body {
@@ -36,7 +74,9 @@ public class NetworkingBase: NSObject {
             urlRequest.httpMethod = method.rawValue.uppercased()
             urlRequest.allHTTPHeaderFields = headers
             urlRequest.httpBody = httpBody
-    
+            urlRequest.addBasicAuthentication(credential: basicAuthCredentials)
+            urlRequest = addDefaultHeadersIfApplicable(for: task, urlRequest: &urlRequest, boundary: boundary)
+            
             return (urlRequest, nil)
             
         } catch let error as EncodingError {
@@ -49,6 +89,23 @@ public class NetworkingBase: NSObject {
         }
     }
     
+    func addDefaultHeadersIfApplicable(for task: NetworkTask, urlRequest: inout URLRequest, boundary: String = "") -> URLRequest {
+        switch task {
+        case .uploadSingleFile:
+            if urlRequest.allHTTPHeaderFields?[HTTPHeader.Key.contentType.rawValue] == nil {
+                urlRequest.addValue(HTTPHeader.Value.ContentType.octetStream.rawValue, forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
+            }
+        case .multipartFormData:
+            urlRequest.addValue(HTTPHeader.Value.ContentType.multipartFormData.rawValue.appending(boundary), forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
+        case .standard:
+            break
+        case .downloadSingleFile:
+            break
+        }
+        return urlRequest
+    }
+
+    
     func parseResponse(_ response: (URL, URLResponse)) -> Result<URL, ZAPError<Any>> {
         
         let meteoriteURL = response.0
@@ -58,7 +115,7 @@ public class NetworkingBase: NSObject {
 
         guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
             let urlString = urlResponse.url?.absoluteString ?? ""
-            return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.failedToDownloadFile.rawValue + urlString)))
+            return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.downloadFile.rawValue + urlString)))
         }
         return .success(meteoriteURL)
     }
