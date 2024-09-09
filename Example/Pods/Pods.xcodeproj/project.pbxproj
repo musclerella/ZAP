@@ -39,6 +39,7 @@
 		71791CBE2C87ECCA00BC7EF5 /* HTTPHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CBD2C87ECCA00BC7EF5 /* HTTPHeader.swift */; };
 		71791CC22C87FAFC00BC7EF5 /* MimeType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CC12C87FAFC00BC7EF5 /* MimeType.swift */; };
 		71791CC62C88109E00BC7EF5 /* Data+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CC52C88109E00BC7EF5 /* Data+Ext.swift */; };
+		7181FD6C2C8E7137007B4532 /* FileSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7181FD6B2C8E7137007B4532 /* FileSize.swift */; };
 		7197F7A72C8A8AF400CAA162 /* FileExtensionMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7197F7A62C8A8AF400CAA162 /* FileExtensionMap.swift */; };
 		72C19C762FADC82517C344E9F47D7E50 /* AlamofireExtended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8260CD0AB554149D97459BBCCAEBCE51 /* AlamofireExtended.swift */; };
 		7736753FD12725F30BDBA68FC202D55C /* Pods-ZAP_Example-dummy.m in Sources */ = {isa = PBXBuildFile; fileRef = B1BBADC7AB2C71129D3271F05919B71E /* Pods-ZAP_Example-dummy.m */; };
@@ -158,6 +159,7 @@
 		71791CBD2C87ECCA00BC7EF5 /* HTTPHeader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HTTPHeader.swift; path = ZAP/Classes/HTTPHeader.swift; sourceTree = "<group>"; };
 		71791CC12C87FAFC00BC7EF5 /* MimeType.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MimeType.swift; path = ZAP/Classes/MimeType.swift; sourceTree = "<group>"; };
 		71791CC52C88109E00BC7EF5 /* Data+Ext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Data+Ext.swift"; path = "ZAP/Classes/Data+Ext.swift"; sourceTree = "<group>"; };
+		7181FD6B2C8E7137007B4532 /* FileSize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = FileSize.swift; path = ZAP/Classes/FileSize.swift; sourceTree = "<group>"; };
 		718922B1D9F44E08C6FEA24F7A518E3E /* Pods-ZAP_Tests-umbrella.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "Pods-ZAP_Tests-umbrella.h"; sourceTree = "<group>"; };
 		7197F7A62C8A8AF400CAA162 /* FileExtensionMap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = FileExtensionMap.swift; path = ZAP/Classes/FileExtensionMap.swift; sourceTree = "<group>"; };
 		786E57F4F2DA1575D23FC22FE0A43E59 /* WebSocketRequest.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebSocketRequest.swift; path = Source/Core/WebSocketRequest.swift; sourceTree = "<group>"; };
@@ -275,6 +277,7 @@
 		1E37CA0BF83EF40C90684776FD695004 /* ZAP */ = {
 			isa = PBXGroup;
 			children = (
+				7181FD6B2C8E7137007B4532 /* FileSize.swift */,
 				7177E5D72C8D172500C2D15C /* URLRequest+Ext.swift */,
 				7197F7A62C8A8AF400CAA162 /* FileExtensionMap.swift */,
 				71791CC52C88109E00BC7EF5 /* Data+Ext.swift */,
@@ -696,6 +699,7 @@
 				8C921C569051FF272924A9C22E7E7649 /* Entry.swift in Sources */,
 				896350515D02B12A137B16D235C36359 /* FileTransfer.swift in Sources */,
 				71791CBE2C87ECCA00BC7EF5 /* HTTPHeader.swift in Sources */,
+				7181FD6C2C8E7137007B4532 /* FileSize.swift in Sources */,
 				71791CC62C88109E00BC7EF5 /* Data+Ext.swift in Sources */,
 				7177E5D82C8D172500C2D15C /* URLRequest+Ext.swift in Sources */,
 				ACE2F869E1154023BBE2D8708BA2EE21 /* HTTPMethod.swift in Sources */,

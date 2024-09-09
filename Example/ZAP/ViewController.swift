@@ -73,9 +73,9 @@ class ViewController: UIViewController {
         
         if let path = Bundle.main.url(forResource: "arctic_tundra", withExtension: "mp4") {
             Task {
-                let result = await Zap.sendFile(.post, to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil) { progress in
+                let result = await Zap.sendFile(.post, to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil, progress:  { progress in
                     print("Progress: \((progress * 100).rounded(.toNearestOrEven))%")
-                }
+                })
                 switch result {
                 case .success(let success):
                     dump(success)

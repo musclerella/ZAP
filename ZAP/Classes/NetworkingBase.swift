@@ -26,21 +26,19 @@ public class NetworkingBase: NSObject {
         return cachePolicy != nil
     }
     
-    override init() {
-        let memoryCapacity = 100 * 1024 * 1024 // MB
-        let diskCapacity = 500 * 1024 * 1024 // MB
+    init(mbMemoryCache: Int = 100, mbDiskCache: Int = 500) {
+        let memoryCapacity = mbMemoryCache * 1024 * 1024 // MB
+        let diskCapacity = mbDiskCache * 1024 * 1024 // MB
         self.cache = URLCache(memoryCapacity: memoryCapacity, diskCapacity: diskCapacity, diskPath: "ZAPNetworkCache")
     }
 
     //MARK: Common Methods
-    func configureURLSessionAndClearChainedConfigurations(delegate: URLSessionDelegate) -> URLSession {
-        // 1. Configure cache
+    func configureURLSession(delegate: URLSessionDelegate) -> URLSession {
+
         let configuration = URLSessionConfiguration.default
         configuration.urlCache = isCacheEnabled ? cache : nil
         configuration.requestCachePolicy = cachePolicy ?? .useProtocolCachePolicy
-        // 2. Clear chained configurations
-        clearChainedConfigurations()
-        
+
         return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
     }
     
@@ -105,8 +103,7 @@ public class NetworkingBase: NSObject {
         return urlRequest
     }
 
-    
-    func parseResponse(_ response: (URL, URLResponse)) -> Result<URL, ZAPError<Any>> {
+    func parseResponseForDownload(_ response: (URL, URLResponse), requestForCaching: URLRequest) -> Result<Data, ZAPError<Any>> {
         
         let meteoriteURL = response.0
         let urlResponse = response.1
@@ -117,10 +114,36 @@ public class NetworkingBase: NSObject {
             let urlString = urlResponse.url?.absoluteString ?? ""
             return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.downloadFile.rawValue + urlString)))
         }
-        return .success(meteoriteURL)
+
+        var fileData: Data
+        do {
+            fileData = try Data(contentsOf: meteoriteURL)
+        } catch {
+            return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+        }
+
+        if isCacheEnabled {
+            let sizeOfDownloadedFile = getFileSizeInMegabytes(at: meteoriteURL)
+            if sizeOfDownloadedFile < 10 {
+                // Memory Cache
+                let cachedResponse = CachedURLResponse(response: urlResponse, data: fileData)
+                cache.storeCachedResponse(cachedResponse, for: requestForCaching)
+            } else if let cacheableURL = requestForCaching.url?.absoluteString {
+                // Disk Cache
+                let fileManager = FileManager.default
+                let cachesDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+                let destinationURL = cachesDirectory.appendingPathComponent(cacheableURL)
+                do {
+                    try fileManager.moveItem(at: meteoriteURL, to: destinationURL)
+                } catch {
+                    return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+                }
+            }
+        }
+        return .success(fileData)
     }
     
-    func parseResponse<S: Decodable, F: Decodable>(_ response: (Data, URLResponse), success: S.Type, failure: F.Type) -> Result<S, ZAPError<F>> {
+    func parseResponse<S: Decodable, F: Decodable>(_ response: (Data, URLResponse), requestForCaching: inout URLRequest, success: S.Type, failure: F.Type) -> Result<S, ZAPError<F>> {
         
         let urlResponse = response.1
         let responseData = response.0
@@ -137,13 +160,33 @@ public class NetworkingBase: NSObject {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while decoding the failure.")))
             }
         }
+
         let successResult = handleSuccess(success, responseData: responseData)
         if let success = successResult.0 {
+            if isCacheEnabled {
+                let cachedResponse = CachedURLResponse(response: urlResponse, data: responseData)
+                requestForCaching.removeMultipartFormDataBoundaryFromHeaders()
+                cache.storeCachedResponse(cachedResponse, for: requestForCaching)
+            }
             return .success(success)
         } else if let internalError = successResult.1 {
             return .failure(ZAPError.internalError(internalError))
         } else {
             return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while decoding the success.")))
+        }
+    }
+    
+    func handleSuccess<S: Decodable>(_ success: S.Type, responseData: Data) -> (S?, InternalError?) {
+        do {
+            let success = try JSONDecoder().decode(success, from: responseData)
+            return (success, nil)
+        } catch let error as DecodingError {
+            let errMsg = extractDecodingErrorMsg(error)
+            let internalError = InternalError(debugMsg: errMsg)
+            return (nil, internalError)
+        } catch {
+            let internalError = InternalError(debugMsg: error.localizedDescription)
+            return (nil, internalError)
         }
     }
     
@@ -158,20 +201,6 @@ public class NetworkingBase: NSObject {
         } catch {
             let internalError = InternalError(debugMsg: error.localizedDescription)
             return ZAPError.internalError(internalError)
-        }
-    }
-
-    private func handleSuccess<S: Decodable>(_ success: S.Type, responseData: Data) -> (S?, InternalError?) {
-        do {
-            let success = try JSONDecoder().decode(success, from: responseData)
-            return (success, nil)
-        } catch let error as DecodingError {
-            let errMsg = extractDecodingErrorMsg(error)
-            let internalError = InternalError(debugMsg: errMsg)
-            return (nil, internalError)
-        } catch {
-            let internalError = InternalError(debugMsg: error.localizedDescription)
-            return (nil, internalError)
         }
     }
     

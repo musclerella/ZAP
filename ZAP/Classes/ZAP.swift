@@ -15,30 +15,36 @@ import Foundation
 //TODO: Add support to return an array of progress bars that are attached to naming identifier(s) (IS THIS NEEDED OR SHOULD THIS REQUIREMENT BE PERFORMED WITH SINGLE FILE UPLOAD APIs?
 
 public typealias MeteoriteURL = URL
+public typealias CachedSuccess<S: Decodable> = (S) -> Void
 
 //MARK: Public Methods
 public class ZAP: NetworkingBase {
 
     public static let `default` = ZAP()
+    
+    public override init(mbMemoryCache: Int = 100, mbDiskCache: Int = 500) {
+        super.init(mbMemoryCache: mbMemoryCache, mbDiskCache: mbDiskCache)
+    }
             
     //MARK: Primary Public Signatures
-    public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
+    public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil) async -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
     }
 
-    public func sendFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
+    public func sendFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         return await FileTransfer().uploadFile(httpMethod, to: url, success: success, failure: failure, fileURL: fileURL, queryItems: queryItems, headers: headers, progress: progress)
     }
 
-    public func sendFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
+    public func sendFilesWithData<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, files: [ZAPFile], body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
         return await FileTransfer().uploadFilesWithData(httpMethod, to: url, success: success, failure: failure, files: files, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
 
-    public func receiveFile(_ httpMethod: HTTPMethod = .get, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, progress: DataTransferProgress? = nil) async -> Result<MeteoriteURL, ZAPError<Any>> {
+    public func receiveFile(_ httpMethod: HTTPMethod = .get, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedFile: FileData? = nil, progress: DataTransferProgress? = nil) async -> Result<Data, ZAPError<Any>> {
         return await FileTransfer().downloadFile(httpMethod, from: url, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
-    
+
     //MARK: Chained Methods
+    //TODO: Test how this works with a Node.js auth token. Might need new signatures
     public func auth(user: String, pass: String) -> ZAP {
         let credentials = "\(user):\(pass)"
         let encodedCredentials = Data(credentials.utf8).base64EncodedString()
@@ -46,10 +52,10 @@ public class ZAP: NetworkingBase {
         return self
     }
     
-    public func auth() -> ZAP {
-        // Use global auth configuration
-        return self
-    }
+//    public func auth() -> ZAP {
+//        // Use global auth configuration
+//        return self
+//    }
     
     public func cache(policy: NSURLRequest.CachePolicy = .useProtocolCachePolicy) -> ZAP {
         self.cachePolicy = policy
@@ -60,7 +66,7 @@ public class ZAP: NetworkingBase {
 //MARK: Private Methods
 extension ZAP {
 
-    private func buildAndExecuteRequest<S: Decodable, F: Decodable>(method: HTTPMethod, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil) async -> Result<S, ZAPError<F>> {
+    private func buildAndExecuteRequest<S: Decodable, F: Decodable>(method: HTTPMethod, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil) async -> Result<S, ZAPError<F>> {
         // 1. Build URL
         let urlResult = buildURL(url: url, queryItems: queryItems)
         guard let url = urlResult.0 else {
@@ -79,15 +85,23 @@ extension ZAP {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
             }
         }
-        // 3. Perform request and parse response
+        // 3. Return cache if available
+        if isCacheEnabled, let cachedResponseData = cache.cachedResponse(for: request)?.data {
+            let success = handleSuccess(success, responseData: cachedResponseData)
+            if let cachedValue = success.0 {
+                cachedSuccess?(cachedValue)
+            }
+        }
+        // 4. Perform request and parse response
         return await performRequestAndParseResponse(urlRequest: &request, success: success, failure: failure)
     }
 
     private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
         do {
-            let session = configureURLSessionAndClearChainedConfigurations(delegate: self)
+            let session = configureURLSession(delegate: self)
+            clearChainedConfigurations()
             let response = try await session.data(for: urlRequest)
-            return parseResponse(response, success: success, failure: failure)
+            return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }
