@@ -17,15 +17,24 @@ import Foundation
 public typealias MeteoriteURL = URL
 public typealias CachedSuccess<S: Decodable> = (S) -> Void
 
+public protocol ZAPGlobalConfiguration {
+    static var memoryCacheSize: Megabytes { get set }
+    static var diskCacheSize: Megabytes { get set }
+    static var defaultCachePolicy: NSURLRequest.CachePolicy { get set }
+    static var defaultAuthCredentials: String? { get set }
+}
+
 //MARK: Public Methods
-public class ZAP: NetworkingBase {
+public class ZAP: NetworkingBase, ZAPGlobalConfiguration {
 
     public static let `default` = ZAP()
     
-    public override init(mbMemoryCache: Int = 100, mbDiskCache: Int = 500) {
-        super.init(mbMemoryCache: mbMemoryCache, mbDiskCache: mbDiskCache)
-    }
-            
+    public static var memoryCacheSize: Megabytes = 100
+    public static var diskCacheSize: Megabytes = 500
+    public static var maxMemoryCacheFileSize: Megabytes = 5
+    public static var defaultCachePolicy: NSURLRequest.CachePolicy = .useProtocolCachePolicy
+    public static var defaultAuthCredentials: String?
+    
     //MARK: Primary Public Signatures
     public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil) async -> Result<S, ZAPError<F>> {
         return await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
@@ -43,8 +52,7 @@ public class ZAP: NetworkingBase {
         return await FileTransfer().downloadFile(httpMethod, from: url, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
 
-    //MARK: Chained Methods
-    //TODO: Test how this works with a Node.js auth token. Might need new signatures
+    //MARK: Authorization Configuration
     public func auth(user: String, pass: String) -> ZAP {
         let credentials = "\(user):\(pass)"
         let encodedCredentials = Data(credentials.utf8).base64EncodedString()
@@ -52,12 +60,28 @@ public class ZAP: NetworkingBase {
         return self
     }
     
-//    public func auth() -> ZAP {
-//        // Use global auth configuration
-//        return self
-//    }
+    public func auth(token: String) -> ZAP {
+        self.basicAuthCredentials = token
+        return self
+    }
     
-    public func cache(policy: NSURLRequest.CachePolicy = .useProtocolCachePolicy) -> ZAP {
+    public func auth() -> ZAP {
+        self.basicAuthCredentials = ZAP.defaultAuthCredentials
+        return self
+    }
+    
+    //MARK: Cache Configuration
+    public func cacheInMemory() -> ZAP {
+        self.isMemoryCacheEnabled = true
+        return self
+    }
+    
+    public func cacheOnDisk() -> ZAP {
+        self.isDiskCacheEnabled = true
+        return self
+    }
+    
+    public func cachePolicy(_ policy: NSURLRequest.CachePolicy) -> ZAP {
         self.cachePolicy = policy
         return self
     }
@@ -85,21 +109,29 @@ extension ZAP {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
             }
         }
-        // 3. Return cache if available
-        if isCacheEnabled, let cachedResponseData = cache.cachedResponse(for: request)?.data {
-            let success = handleSuccess(success, responseData: cachedResponseData)
-            if let cachedValue = success.0 {
+        // 3. Memory cache
+        if isMemoryCacheEnabled {
+            if let cachedValue = retrieveFromMemoryCache(request: request, success: success) {
                 cachedSuccess?(cachedValue)
             }
         }
-        // 4. Perform request and parse response
+        // 4. Disk cache
+        if isDiskCacheEnabled {
+            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url) {
+                let successResult = handleSuccess(success, responseData: cachedValue)
+                if let success = successResult.0 {
+                    cachedSuccess?(success)
+                }
+            }
+        }
+        // 5. Perform request and parse response
         return await performRequestAndParseResponse(urlRequest: &request, success: success, failure: failure)
     }
 
     private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
         do {
             let session = configureURLSession(delegate: self)
-            clearChainedConfigurations()
+            resetChainedConfigurations()
             let response = try await session.data(for: urlRequest)
             return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
         } catch {

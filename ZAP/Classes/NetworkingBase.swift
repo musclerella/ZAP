@@ -14,40 +14,62 @@ enum NetworkTask {
     case standard
 }
 
-public class NetworkingBase: NSObject {
+protocol ChainedConfiguration {
+    var basicAuthCredentials: String? { get set }
+    var cachePolicy: NSURLRequest.CachePolicy? { get set }
+    var isMemoryCacheEnabled: Bool { get set }
+    var isDiskCacheEnabled: Bool { get set }
+}
+
+public class NetworkingBase: NSObject, ChainedConfiguration {
     
-    let cache: URLCache
-    
-    // Chained configurations
+    let cache = URLCache.shared
+
     var basicAuthCredentials: String?
     var cachePolicy: NSURLRequest.CachePolicy?
-    
-    var isCacheEnabled: Bool {
-        return cachePolicy != nil
-    }
-    
-    init(mbMemoryCache: Int = 100, mbDiskCache: Int = 500) {
-        let memoryCapacity = mbMemoryCache * 1024 * 1024 // MB
-        let diskCapacity = mbDiskCache * 1024 * 1024 // MB
-        self.cache = URLCache(memoryCapacity: memoryCapacity, diskCapacity: diskCapacity, diskPath: "ZAPNetworkCache")
-    }
+    var isMemoryCacheEnabled: Bool = false
+    var isDiskCacheEnabled: Bool = false
 
+    override init() {
+        if URLCache.shared.memoryCapacity != ZAP.memoryCacheSize || URLCache.shared.diskCapacity != 0 {
+            URLCache.shared = URLCache(memoryCapacity: ZAP.memoryCacheSize, diskCapacity: 0, directory: nil)
+        }
+    }
+    
     //MARK: Common Methods
     func configureURLSession(delegate: URLSessionDelegate) -> URLSession {
 
         let configuration = URLSessionConfiguration.default
-        configuration.urlCache = isCacheEnabled ? cache : nil
-        configuration.requestCachePolicy = cachePolicy ?? .useProtocolCachePolicy
+        configuration.urlCache = isMemoryCacheEnabled ? URLCache.shared : nil
+        configuration.requestCachePolicy = cachePolicy ?? ZAP.defaultCachePolicy
 
         return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
     }
     
-    
-    func clearChainedConfigurations() {
-        // Clears localized chained configurations for a request. Applys to singleton and static based implementations so subsequent requests do not pick up previously used configurations
+    func resetChainedConfigurations() {
+        // Clears localized chained configurations for a request. Applys to singleton based implementations so subsequent requests do not pick up previously used configurations
         // This should NOT be needed for instance based implementations since a different ZAP instance is created for every single request
         basicAuthCredentials = nil
         cachePolicy = nil
+        isMemoryCacheEnabled = false
+        isDiskCacheEnabled = false
+    }
+    
+    func retrieveFromMemoryCache<S: Decodable>(request: URLRequest, success: S.Type) -> S? {
+        let cacheableRequest = request.removeAndReturnMultipartFormDataBoundaryFromHeaders()
+        if let cachedResponseData = cache.cachedResponse(for: cacheableRequest)?.data {
+            let success = handleSuccess(success, responseData: cachedResponseData)
+            if let cachedValue = success.0 {
+                return cachedValue
+            }
+        }
+        return nil
+    }
+    
+    func storeInMemoryCache(request: inout URLRequest, urlResponse: URLResponse, responseData: Data) {
+        let cachedResponse = CachedURLResponse(response: urlResponse, data: responseData)
+        request.removeMultipartFormDataBoundaryFromHeaders()
+        cache.storeCachedResponse(cachedResponse, for: request)
     }
     
     func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, InternalError?) {
@@ -102,46 +124,6 @@ public class NetworkingBase: NSObject {
         }
         return urlRequest
     }
-
-    func parseResponseForDownload(_ response: (URL, URLResponse), requestForCaching: URLRequest) -> Result<Data, ZAPError<Any>> {
-        
-        let meteoriteURL = response.0
-        let urlResponse = response.1
-        
-        debugPrint(urlResponse)
-
-        guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
-            let urlString = urlResponse.url?.absoluteString ?? ""
-            return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.downloadFile.rawValue + urlString)))
-        }
-
-        var fileData: Data
-        do {
-            fileData = try Data(contentsOf: meteoriteURL)
-        } catch {
-            return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
-        }
-
-        if isCacheEnabled {
-            let sizeOfDownloadedFile = getFileSizeInMegabytes(at: meteoriteURL)
-            if sizeOfDownloadedFile < 10 {
-                // Memory Cache
-                let cachedResponse = CachedURLResponse(response: urlResponse, data: fileData)
-                cache.storeCachedResponse(cachedResponse, for: requestForCaching)
-            } else if let cacheableURL = requestForCaching.url?.absoluteString {
-                // Disk Cache
-                let fileManager = FileManager.default
-                let cachesDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-                let destinationURL = cachesDirectory.appendingPathComponent(cacheableURL)
-                do {
-                    try fileManager.moveItem(at: meteoriteURL, to: destinationURL)
-                } catch {
-                    return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
-                }
-            }
-        }
-        return .success(fileData)
-    }
     
     func parseResponse<S: Decodable, F: Decodable>(_ response: (Data, URLResponse), requestForCaching: inout URLRequest, success: S.Type, failure: F.Type) -> Result<S, ZAPError<F>> {
         
@@ -163,10 +145,17 @@ public class NetworkingBase: NSObject {
 
         let successResult = handleSuccess(success, responseData: responseData)
         if let success = successResult.0 {
-            if isCacheEnabled {
-                let cachedResponse = CachedURLResponse(response: urlResponse, data: responseData)
-                requestForCaching.removeMultipartFormDataBoundaryFromHeaders()
-                cache.storeCachedResponse(cachedResponse, for: requestForCaching)
+            if isMemoryCacheEnabled {
+                storeInMemoryCache(request: &requestForCaching, urlResponse: urlResponse, responseData: responseData)
+            }
+            if isDiskCacheEnabled {
+                if let cacheableURL = requestForCaching.url?.absoluteString {
+                    do {
+                        try DiskCache().storeJSONData(responseData, for: cacheableURL)
+                    } catch {
+                        return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+                    }
+                }
             }
             return .success(success)
         } else if let internalError = successResult.1 {

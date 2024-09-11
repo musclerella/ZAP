@@ -16,9 +16,8 @@ class FileTransfer: NetworkingBase {
     let session: URLSession
     var progress: DataTransferProgress?
     
-    init() {
+    override init() {
         session = URLSession(configuration: URLSessionConfiguration.default, delegate: nil, delegateQueue: nil)
-        super.init()
     }
     
     func downloadFile(_ httpMethod: HTTPMethod, from url: String, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedFile: FileData? = nil, progress: DataTransferProgress? = nil) async -> Result<Data, ZAPError<Any>> {
@@ -135,15 +134,19 @@ extension FileTransfer {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
             }
         }
-        // 3. Return cache if available
-        if isCacheEnabled {
+        // 3. Memory cache
+        if isMemoryCacheEnabled {
             if let cachedResponseData = cache.cachedResponse(for: request)?.data {
                 cachedFile?(cachedResponseData)
-            } else {
-                // Check cachesDirectory for large files
             }
         }
-        // 4. Perform request
+        // 4. Disk cache
+        if isDiskCacheEnabled {
+            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url) {
+                cachedFile?(cachedValue)
+            }
+        }
+        // 5. Perform request
         return await performRequestAndParseResponseForSingleFileDownload(urlRequest: &request)
     }
     
@@ -173,14 +176,22 @@ extension FileTransfer {
         }
         // 4. Add default http headers if not provided
         request = addDefaultHeadersIfApplicable(for: .uploadSingleFile, urlRequest: &request)
-        // 5. Return cache if available
-        if isCacheEnabled, let cachedResponseData = cache.cachedResponse(for: request)?.data {
-            let success = handleSuccess(success, responseData: cachedResponseData)
-            if let cachedValue = success.0 {
+        // 5. Memory cache
+        if isMemoryCacheEnabled {
+            if let cachedValue = retrieveFromMemoryCache(request: request, success: success) {
                 cachedSuccess?(cachedValue)
             }
         }
-        // 6. Perform request
+        // 6. Disk cache
+        if isDiskCacheEnabled {
+            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url) {
+                let successResult = handleSuccess(success, responseData: cachedValue)
+                if let success = successResult.0 {
+                    cachedSuccess?(success)
+                }
+            }
+        }
+        // 7. Perform request
         return await performRequestAndParseResponseForSingleFileUpload(urlRequest: &request, success: success, failure: failure, fileData: fileData)
     }
     
@@ -195,8 +206,9 @@ extension FileTransfer {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the server URL.")))
             }
         }
+        let boundary = UUID().uuidString
         // 2. Build request
-        let requestResult = buildRequest(task: .multipartFormData, method: httpMethod, url: serverURL, body: body, headers: headers)
+        let requestResult = buildRequest(task: .multipartFormData, method: httpMethod, url: serverURL, body: body, headers: headers, boundary: boundary)
         guard var request = requestResult.0 else {
             if let internalError = requestResult.1 {
                 return .failure(ZAPError.internalError(internalError))
@@ -205,7 +217,6 @@ extension FileTransfer {
             }
         }
         // 3. Create multipart/form-data http body
-        let boundary = UUID().uuidString
         var multipartHttpBody: Data?
         if let httpBody = request.httpBody {
             let jsonSerializationResult = httpBody.convertToDictionary()
@@ -237,12 +248,19 @@ extension FileTransfer {
         request.httpBody = multipartHttpBody
         // 4. Add default http headers if not provided
         request = addDefaultHeadersIfApplicable(for: .multipartFormData, urlRequest: &request, boundary: boundary)
-        // 5. Return cache if available
-        let cacheableRequest = request.removeAndReturnMultipartFormDataBoundaryFromHeaders()
-        if isCacheEnabled, let cachedResponseData = cache.cachedResponse(for: cacheableRequest)?.data {
-            let success = handleSuccess(success, responseData: cachedResponseData)
-            if let cachedValue = success.0 {
+        // 5. Memory cache
+        if isMemoryCacheEnabled {
+            if let cachedValue = retrieveFromMemoryCache(request: request, success: success) {
                 cachedSuccess?(cachedValue)
+            }
+        }
+        // 6. Disk cache
+        if isDiskCacheEnabled {
+            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url) {
+                let successResult = handleSuccess(success, responseData: cachedValue)
+                if let success = successResult.0 {
+                    cachedSuccess?(success)
+                }
             }
         }
         // 6. Perform request
@@ -252,9 +270,9 @@ extension FileTransfer {
     private func performRequestAndParseResponseForSingleFileDownload(urlRequest: inout URLRequest) async -> Result<Data, ZAPError<Any>> {
         do {
             let session = configureURLSession(delegate: self)
-            clearChainedConfigurations()
+            resetChainedConfigurations()
             let response = try await session.download(for: urlRequest, delegate: self)
-            return parseResponseForDownload(response, requestForCaching: urlRequest)
+            return parseResponseForDownload(response, requestForCaching: &urlRequest)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }
@@ -263,7 +281,7 @@ extension FileTransfer {
     private func performRequestAndParseResponseForSingleFileUpload<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type, fileData: Data) async -> Result<S, ZAPError<F>> {
         do {
             let session = configureURLSession(delegate: self)
-            clearChainedConfigurations()
+            resetChainedConfigurations()
             let response = try await session.upload(for: urlRequest, from: fileData, delegate: self)
             return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
         } catch {
@@ -274,12 +292,51 @@ extension FileTransfer {
     private func performRequestAndParseResponseForMultipartFormData<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type)  async -> Result<S, ZAPError<F>> {
         do {
             let session = configureURLSession(delegate: self)
-            clearChainedConfigurations()
+            resetChainedConfigurations()
             let response = try await session.data(for: urlRequest)
             return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }
+    }
+    
+    func parseResponseForDownload(_ response: (URL, URLResponse), requestForCaching: inout URLRequest) -> Result<Data, ZAPError<Any>> {
+        
+        let meteoriteURL = response.0
+        let urlResponse = response.1
+        
+        debugPrint(urlResponse)
+
+        guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
+            let urlString = urlResponse.url?.absoluteString ?? ""
+            return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.downloadFile.rawValue + urlString)))
+        }
+
+        var fileData: Data
+        do {
+            fileData = try Data(contentsOf: meteoriteURL)
+        } catch {
+            return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+        }
+
+        if isMemoryCacheEnabled {
+            let fileSizeInMBResult = getFileSizeInMegabytes(at: meteoriteURL)
+            if let fileSizeInMB = fileSizeInMBResult.0 {
+                if fileSizeInMB <= ZAP.maxMemoryCacheFileSize {
+                    storeInMemoryCache(request: &requestForCaching, urlResponse: urlResponse, responseData: fileData)
+                }
+            } else if let internalError = fileSizeInMBResult.1 {
+                return .failure(ZAPError.internalError(internalError))
+            }
+        }
+        if isDiskCacheEnabled, let cacheableURL = requestForCaching.url?.absoluteString {
+            do {
+                try DiskCache().storeJSONData(fileData, for: cacheableURL)
+            } catch {
+                return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+            }
+        }
+        return .success(fileData)
     }
 }
 
