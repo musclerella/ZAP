@@ -126,7 +126,7 @@ extension FileTransfer {
             }
         }
         // 2. Build request
-        let requestResult = buildRequest(task: .downloadSingleFile, method: httpMethod, url: serverURL, body: body, headers: headers)
+        let requestResult = buildRequest(task: .downloadSingleFile, method: httpMethod, url: serverURL, body: body, headers: headers, basicAuthCredentials: basicAuthCredentials)
         guard var request = requestResult.0 else {
             if let internalError = requestResult.1 {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: internalError.localizedDescription)))
@@ -166,7 +166,7 @@ extension FileTransfer {
             return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.readDataFromFilePath.rawValue)))
         }
         // 3. Build request
-        let requestResult = buildRequest(task: .uploadSingleFile, method: httpMethod, url: serverURL, body: nil, headers: headers)
+        let requestResult = buildRequest(task: .uploadSingleFile, method: httpMethod, url: serverURL, body: nil, headers: headers, basicAuthCredentials: basicAuthCredentials)
         guard var request = requestResult.0 else {
             if let internalError = requestResult.1 {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: internalError.localizedDescription)))
@@ -178,17 +178,14 @@ extension FileTransfer {
         request = addDefaultHeadersIfApplicable(for: .uploadSingleFile, urlRequest: &request)
         // 5. Memory cache
         if isMemoryCacheEnabled {
-            if let cachedValue = retrieveFromMemoryCache(request: request, success: success) {
+            if let cachedValue = MemoryCache().retrieveFromMemoryCache(request: request, success: success) {
                 cachedSuccess?(cachedValue)
             }
         }
         // 6. Disk cache
         if isDiskCacheEnabled {
-            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url) {
-                let successResult = handleSuccess(success, responseData: cachedValue)
-                if let success = successResult.0 {
-                    cachedSuccess?(success)
-                }
+            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url, success: success) {
+                cachedSuccess?(cachedValue)
             }
         }
         // 7. Perform request
@@ -206,9 +203,9 @@ extension FileTransfer {
                 return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the server URL.")))
             }
         }
-        let boundary = UUID().uuidString
         // 2. Build request
-        let requestResult = buildRequest(task: .multipartFormData, method: httpMethod, url: serverURL, body: body, headers: headers, boundary: boundary)
+        let boundary = UUID().uuidString
+        let requestResult = buildRequest(task: .multipartFormData, method: httpMethod, url: serverURL, body: body, headers: headers, boundary: boundary, basicAuthCredentials: basicAuthCredentials)
         guard var request = requestResult.0 else {
             if let internalError = requestResult.1 {
                 return .failure(ZAPError.internalError(internalError))
@@ -250,26 +247,23 @@ extension FileTransfer {
         request = addDefaultHeadersIfApplicable(for: .multipartFormData, urlRequest: &request, boundary: boundary)
         // 5. Memory cache
         if isMemoryCacheEnabled {
-            if let cachedValue = retrieveFromMemoryCache(request: request, success: success) {
+            if let cachedValue = MemoryCache().retrieveFromMemoryCache(request: request, success: success) {
                 cachedSuccess?(cachedValue)
             }
         }
         // 6. Disk cache
         if isDiskCacheEnabled {
-            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url) {
-                let successResult = handleSuccess(success, responseData: cachedValue)
-                if let success = successResult.0 {
-                    cachedSuccess?(success)
-                }
+            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url, success: success) {
+                cachedSuccess?(cachedValue)
             }
         }
-        // 6. Perform request
+        // 7. Perform request
         return await performRequestAndParseResponseForMultipartFormData(urlRequest: &request, success: success, failure: failure)
     }
     
     private func performRequestAndParseResponseForSingleFileDownload(urlRequest: inout URLRequest) async -> Result<Data, ZAPError<Any>> {
         do {
-            let session = configureURLSession(delegate: self)
+            let session = configureURLSession(delegate: self, urlCache: cache, cachePolicy: cachePolicy)
             resetChainedConfigurations()
             let response = try await session.download(for: urlRequest, delegate: self)
             return parseResponseForDownload(response, requestForCaching: &urlRequest)
@@ -280,7 +274,7 @@ extension FileTransfer {
         
     private func performRequestAndParseResponseForSingleFileUpload<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type, fileData: Data) async -> Result<S, ZAPError<F>> {
         do {
-            let session = configureURLSession(delegate: self)
+            let session = configureURLSession(delegate: self, urlCache: cache, cachePolicy: cachePolicy)
             resetChainedConfigurations()
             let response = try await session.upload(for: urlRequest, from: fileData, delegate: self)
             return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
@@ -291,7 +285,7 @@ extension FileTransfer {
 
     private func performRequestAndParseResponseForMultipartFormData<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type)  async -> Result<S, ZAPError<F>> {
         do {
-            let session = configureURLSession(delegate: self)
+            let session = configureURLSession(delegate: self, urlCache: cache, cachePolicy: cachePolicy)
             resetChainedConfigurations()
             let response = try await session.data(for: urlRequest)
             return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
@@ -307,34 +301,27 @@ extension FileTransfer {
         
         debugPrint(urlResponse)
 
-        guard let httpURLResponse = urlResponse as? HTTPURLResponse, httpURLResponse.statusCode == 200 else {
+        guard let httpURLResponse = urlResponse as? HTTPURLResponse, ZAP.successStatusCodes.contains(httpURLResponse.statusCode) else {
             let urlString = urlResponse.url?.absoluteString ?? ""
             return .failure(ZAPError.internalError(InternalError(debugMsg: ZAPErrorMsg.downloadFile.rawValue + urlString)))
         }
-
+        // Convert downloaded file url to data
         var fileData: Data
         do {
             fileData = try Data(contentsOf: meteoriteURL)
         } catch {
             return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
         }
-
+        // Memory cache
         if isMemoryCacheEnabled {
-            let fileSizeInMBResult = getFileSizeInMegabytes(at: meteoriteURL)
-            if let fileSizeInMB = fileSizeInMBResult.0 {
-                if fileSizeInMB <= ZAP.maxMemoryCacheFileSize {
-                    storeInMemoryCache(request: &requestForCaching, urlResponse: urlResponse, responseData: fileData)
-                }
-            } else if let internalError = fileSizeInMBResult.1 {
-                return .failure(ZAPError.internalError(internalError))
+            let fileSizeInMB = getFileSizeInMegabytes(at: meteoriteURL)
+            if fileSizeInMB <= ZAP.maxMemoryCacheFileSize && 0 < fileSizeInMB {
+                MemoryCache().storeInMemoryCache(request: &requestForCaching, urlResponse: urlResponse, responseData: fileData)
             }
         }
-        if isDiskCacheEnabled, let cacheableURL = requestForCaching.url?.absoluteString {
-            do {
-                try DiskCache().storeJSONData(fileData, for: cacheableURL)
-            } catch {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
-            }
+        // Disk cache
+        if isDiskCacheEnabled {
+            DiskCache().storeJSONData(request: requestForCaching, data: fileData)
         }
         return .success(fileData)
     }

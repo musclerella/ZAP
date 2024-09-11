@@ -9,23 +9,25 @@ import Foundation
 
 public typealias Megabytes = Int
 
-func getFileSizeInMegabytes(at fileURL: URL) -> (Megabytes?, InternalError?) {
+func getFileSizeInMegabytes(at fileURL: URL) -> Megabytes {
     do {
         // Check if the file exists
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            return (nil, InternalError(debugMsg: "File does not exist at path: \(fileURL.path)"))
+            debugPrint("File does not exist at path: \(fileURL.path)")
+            return 0
         }
         // Get the file attributes for the file at the given URL
         let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
         // Retrieve the file size attribute from the attributes dictionary
         if let fileSize = attributes[.size] as? UInt64 {
-            return (bytesToMegabytes(fileSize), nil)
+            return bytesToMegabytes(fileSize)
         } else {
-            return (nil, InternalError(debugMsg: "File size attribute is unavailable or invalid."))
+            debugPrint("File size attribute is unavailable or invalid.")
         }
     } catch {
-        return (nil, InternalError(debugMsg: "Error retrieving attributes of file: \(error.localizedDescription)"))
+        debugPrint("Error retrieving attributes of file: \(error.localizedDescription)")
     }
+    return 0
 }
 
 func bytesToMegabytes(_ bytes: UInt64) -> Megabytes {

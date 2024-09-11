@@ -24,3 +24,5 @@ enum ZAPErrorMsg: String, Error {
     case downloadFile = "Failed to download file at URL = "
     case urlToDataConversion = "Failed to convert URL to data for file"
 }
+
+public protocol DecodableError: Error, Decodable { }

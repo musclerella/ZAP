@@ -7,7 +7,7 @@
 
 import Foundation
 
-class DiskCache {
+class DiskCache: NetworkingResponseDelegate {
 
     private let fileManager = FileManager.default
     private let cacheDirectory: URL
@@ -29,17 +29,24 @@ class DiskCache {
         }
     }
     
-    func storeJSONData(_ data: Data, for cacheableURL: String) throws {
-        let fileURL = cacheDirectory.appendingPathComponent(cacheableURL)
-        do {
-            try data.write(to: fileURL, options: .atomicWrite)
-        } catch {
-            throw InternalError(debugMsg: error.localizedDescription)
+    func storeJSONData(request: URLRequest, data: Data) {
+        if let cacheableURL = request.url?.absoluteString {
+            let fileURL = cacheDirectory.appendingPathComponent(cacheableURL)
+            do {
+                try data.write(to: fileURL, options: .atomicWrite)
+            } catch {
+                debugPrint(error.localizedDescription)
+            }
         }
     }
     
     func cachedValueAt(url: String) -> Data? {
         let filePath = cacheDirectory.appendingPathComponent(url)
         return try? Data(contentsOf: filePath)
+    }
+    
+    func cachedValueAt<S: Decodable>(url: String, success: S.Type) -> S? {
+        guard let cachedData = cachedValueAt(url: url) else { return nil }
+        return try? convertSuccessDataIntoStruct(success, responseData: cachedData)
     }
 }

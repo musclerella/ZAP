@@ -35,6 +35,9 @@
 		6CC7E7C00730B1BF42A28B2E23CA01D6 /* URLSessionConfiguration+Alamofire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187B6A9A452964C4A1EE57A0D9A184F1 /* URLSessionConfiguration+Alamofire.swift */; };
 		6F2E0DC7D8598283D088A989FDB8E5F6 /* ParameterEncoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = D36A096FB082A79D597EBB420437ED4D /* ParameterEncoding.swift */; };
 		716241A32C8FB33E007F90AC /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716241A22C8FB33E007F90AC /* DiskCache.swift */; };
+		717540392C922F8B005FBAB9 /* NetworkingResponseDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717540382C922F8B005FBAB9 /* NetworkingResponseDelegate.swift */; };
+		7175403D2C9230B2005FBAB9 /* MemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7175403C2C9230B2005FBAB9 /* MemoryCache.swift */; };
+		717540412C924046005FBAB9 /* NetworkingRequestDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717540402C924046005FBAB9 /* NetworkingRequestDelegate.swift */; };
 		7177E5D82C8D172500C2D15C /* URLRequest+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7177E5D72C8D172500C2D15C /* URLRequest+Ext.swift */; };
 		71791CBA2C87D4A400BC7EF5 /* ZAPFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CB92C87D4A400BC7EF5 /* ZAPFile.swift */; };
 		71791CBE2C87ECCA00BC7EF5 /* HTTPHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71791CBD2C87ECCA00BC7EF5 /* HTTPHeader.swift */; };
@@ -156,6 +159,9 @@
 		6E1F840BAE73398E724FBC181C8526FF /* EventMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = EventMonitor.swift; path = Source/Features/EventMonitor.swift; sourceTree = "<group>"; };
 		70F4AD705D1D2FC7CBB755F5114CB7CD /* Alamofire-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "Alamofire-Info.plist"; sourceTree = "<group>"; };
 		716241A22C8FB33E007F90AC /* DiskCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DiskCache.swift; path = ZAP/Classes/DiskCache.swift; sourceTree = "<group>"; };
+		717540382C922F8B005FBAB9 /* NetworkingResponseDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NetworkingResponseDelegate.swift; path = ZAP/Classes/NetworkingResponseDelegate.swift; sourceTree = "<group>"; };
+		7175403C2C9230B2005FBAB9 /* MemoryCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MemoryCache.swift; path = ZAP/Classes/MemoryCache.swift; sourceTree = "<group>"; };
+		717540402C924046005FBAB9 /* NetworkingRequestDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NetworkingRequestDelegate.swift; path = ZAP/Classes/NetworkingRequestDelegate.swift; sourceTree = "<group>"; };
 		7177E5D72C8D172500C2D15C /* URLRequest+Ext.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "URLRequest+Ext.swift"; path = "ZAP/Classes/URLRequest+Ext.swift"; sourceTree = "<group>"; };
 		71791CB92C87D4A400BC7EF5 /* ZAPFile.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ZAPFile.swift; path = ZAP/Classes/ZAPFile.swift; sourceTree = "<group>"; };
 		71791CBD2C87ECCA00BC7EF5 /* HTTPHeader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HTTPHeader.swift; path = ZAP/Classes/HTTPHeader.swift; sourceTree = "<group>"; };
@@ -279,6 +285,9 @@
 		1E37CA0BF83EF40C90684776FD695004 /* ZAP */ = {
 			isa = PBXGroup;
 			children = (
+				717540402C924046005FBAB9 /* NetworkingRequestDelegate.swift */,
+				7175403C2C9230B2005FBAB9 /* MemoryCache.swift */,
+				717540382C922F8B005FBAB9 /* NetworkingResponseDelegate.swift */,
 				716241A22C8FB33E007F90AC /* DiskCache.swift */,
 				7181FD6B2C8E7137007B4532 /* FileSize.swift */,
 				7177E5D72C8D172500C2D15C /* URLRequest+Ext.swift */,
@@ -699,6 +708,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7197F7A72C8A8AF400CAA162 /* FileExtensionMap.swift in Sources */,
+				717540392C922F8B005FBAB9 /* NetworkingResponseDelegate.swift in Sources */,
 				8C921C569051FF272924A9C22E7E7649 /* Entry.swift in Sources */,
 				896350515D02B12A137B16D235C36359 /* FileTransfer.swift in Sources */,
 				71791CBE2C87ECCA00BC7EF5 /* HTTPHeader.swift in Sources */,
@@ -706,6 +716,8 @@
 				71791CC62C88109E00BC7EF5 /* Data+Ext.swift in Sources */,
 				7177E5D82C8D172500C2D15C /* URLRequest+Ext.swift in Sources */,
 				ACE2F869E1154023BBE2D8708BA2EE21 /* HTTPMethod.swift in Sources */,
+				717540412C924046005FBAB9 /* NetworkingRequestDelegate.swift in Sources */,
+				7175403D2C9230B2005FBAB9 /* MemoryCache.swift in Sources */,
 				4259B18F416935211C1CB9D3D4D69FAA /* NetworkingBase.swift in Sources */,
 				716241A32C8FB33E007F90AC /* DiskCache.swift in Sources */,
 				71791CC22C87FAFC00BC7EF5 /* MimeType.swift in Sources */,

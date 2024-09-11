@@ -32,6 +32,7 @@ public class ZAP: NetworkingBase, ZAPGlobalConfiguration {
     public static var memoryCacheSize: Megabytes = 100
     public static var diskCacheSize: Megabytes = 500
     public static var maxMemoryCacheFileSize: Megabytes = 5
+    public static var successStatusCodes: [Int] = [200]
     public static var defaultCachePolicy: NSURLRequest.CachePolicy = .useProtocolCachePolicy
     public static var defaultAuthCredentials: String?
     
@@ -101,7 +102,7 @@ extension ZAP {
             }
         }
         // 2. Build Request
-        let requestResult = buildRequest(task: .standard, method: method, url: url, body: body, headers: headers)
+        let requestResult = buildRequest(task: .standard, method: method, url: url, body: body, headers: headers, basicAuthCredentials: basicAuthCredentials)
         guard var request = requestResult.0 else {
             if let internalError = requestResult.1 {
                 return .failure(ZAPError.internalError(internalError))
@@ -111,17 +112,14 @@ extension ZAP {
         }
         // 3. Memory cache
         if isMemoryCacheEnabled {
-            if let cachedValue = retrieveFromMemoryCache(request: request, success: success) {
+            if let cachedValue = MemoryCache().retrieveFromMemoryCache(request: request, success: success) {
                 cachedSuccess?(cachedValue)
             }
         }
         // 4. Disk cache
         if isDiskCacheEnabled {
-            if let url = request.url?.absoluteString, let cachedValue = DiskCache().cachedValueAt(url: url) {
-                let successResult = handleSuccess(success, responseData: cachedValue)
-                if let success = successResult.0 {
-                    cachedSuccess?(success)
-                }
+            if let cachedValue = DiskCache().cachedValueAt(url: url.absoluteString, success: success) {
+                cachedSuccess?(cachedValue)
             }
         }
         // 5. Perform request and parse response
@@ -130,7 +128,7 @@ extension ZAP {
 
     private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
         do {
-            let session = configureURLSession(delegate: self)
+            let session = configureURLSession(delegate: self, urlCache: cache, cachePolicy: cachePolicy)
             resetChainedConfigurations()
             let response = try await session.data(for: urlRequest)
             return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
