@@ -25,7 +25,7 @@ class DiskCache: NetworkingResponseDelegate {
         do {
             try fileManager.moveItem(at: meteoriteURL, to: destinationURL)
         } catch {
-            throw InternalError(debugMsg: error.localizedDescription)
+            throw InternalError(error.localizedDescription)
         }
     }
     
@@ -40,13 +40,13 @@ class DiskCache: NetworkingResponseDelegate {
         }
     }
     
-    func cachedValueAt(url: String) -> Data? {
+    func cachedDataAt(url: String) -> Data? {
         let filePath = cacheDirectory.appendingPathComponent(url)
         return try? Data(contentsOf: filePath)
     }
     
-    func cachedValueAt<S: Decodable>(url: String, success: S.Type) -> S? {
-        guard let cachedData = cachedValueAt(url: url) else { return nil }
-        return try? convertSuccessDataIntoStruct(success, responseData: cachedData)
+    func cachedSuccessAt<S: Decodable>(url: String, success: S.Type) -> S? {
+        guard let cachedData = cachedDataAt(url: url) else { return nil }
+        return try? deserializeSuccess(success, responseData: cachedData)
     }
 }

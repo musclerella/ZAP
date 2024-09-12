@@ -7,22 +7,29 @@
 
 import Foundation
 
-// This enum contains the possible errors and brings explicit visibility into what data can be accessed from which error
-public enum ZAPError<F>: Error {
-    case failureError(_ error: F)
-    case internalError(_ error: InternalError)
+public struct ZAPError<F>: Error {
+    public let statusCode: Int
+    public let serverError: F?
+    public let internalErrorMsg: String?
+    init(statusCode: Int = 0, serverError: F?, internalErrorMsg: String?) {
+        self.statusCode = statusCode
+        self.serverError = serverError
+        self.internalErrorMsg = internalErrorMsg
+    }
 }
 
-public struct InternalError: Error {
-    var debugMsg: String
+struct InternalError: Error {
+    let internalErrorMessage: String
+    init(_ message: String) {
+        self.internalErrorMessage = message
+    }
 }
 
-enum ZAPErrorMsg: String, Error {
+enum ZAPErrorMsg: String {
     case malformedURL = "The URL is malformed"
     case unknown = "An unknown error occurred"
     case readDataFromFilePath = "Failed to read data from file path"
     case downloadFile = "Failed to download file at URL = "
     case urlToDataConversion = "Failed to convert URL to data for file"
+    case stringEncodingError = "Failed to encode string "
 }
-
-public protocol DecodableError: Error, Decodable { }

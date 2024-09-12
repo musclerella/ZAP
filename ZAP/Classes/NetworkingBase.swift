@@ -35,47 +35,39 @@ public class NetworkingBase: NSObject, NetworkingRequestDelegate, NetworkingResp
             URLCache.shared = URLCache(memoryCapacity: ZAP.memoryCacheSize, diskCapacity: 0, directory: nil)
         }
     }
-    
-    func resetChainedConfigurations() {
-        basicAuthCredentials = nil
-        cachePolicy = nil
-        isMemoryCacheEnabled = false
-        isDiskCacheEnabled = false
-    }
-    
-    func parseResponse<S: Decodable, F: Decodable>(_ response: (Data, URLResponse), requestForCaching: inout URLRequest, success: S.Type, failure: F.Type) -> Result<S, ZAPError<F>> {
+
+    func parseResponse<S: Decodable, F: Decodable>(_ response: (Data, URLResponse), requestForCaching: inout URLRequest, success: S.Type, failure: F.Type) throws -> S {
         
         let urlResponse = response.1
         let responseData = response.0
+        let statusCode = (urlResponse as? HTTPURLResponse)?.statusCode ?? 0
         
         debugPrint(urlResponse)
 
-        guard let httpURLResponse = urlResponse as? HTTPURLResponse, ZAP.successStatusCodes.contains(httpURLResponse.statusCode) else {
+        guard ZAP.successStatusCodes.contains(statusCode) else {
             do {
-                let failure = try convertFailureDataIntoStruct(failure, responseData: responseData)
-                return .failure(ZAPError.failureError(failure))
+                let serverError = try deserializeServerError(failure, responseData: responseData)
+                throw ZAPError(statusCode: statusCode, serverError: serverError, internalErrorMsg: nil)
             } catch let error as InternalError {
-                return .failure(ZAPError.internalError(error))
+                throw ZAPError<F>(statusCode: statusCode, serverError: nil, internalErrorMsg: error.internalErrorMessage)
             } catch {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+                throw ZAPError<F>(statusCode: statusCode, serverError: nil, internalErrorMsg: error.localizedDescription)
             }
         }
-        // Memory cache
+
         if isMemoryCacheEnabled {
-            MemoryCache().storeInMemoryCache(request: &requestForCaching, urlResponse: urlResponse, responseData: responseData)
+            MemoryCache().storeDataInCache(request: &requestForCaching, urlResponse: urlResponse, responseData: responseData)
         }
-        // Disk cache
         if isDiskCacheEnabled {
             DiskCache().storeJSONData(request: requestForCaching, data: responseData)
         }
 
         do {
-            let success = try convertSuccessDataIntoStruct(success, responseData: responseData)
-            return .success(success)
+            return try deserializeSuccess(success, responseData: responseData)
         } catch let error as InternalError {
-            return .failure(ZAPError.internalError(error))
+            throw ZAPError<F>(statusCode: statusCode, serverError: nil, internalErrorMsg: error.internalErrorMessage)
         } catch {
-            return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+            throw ZAPError<F>(statusCode: statusCode, serverError: nil, internalErrorMsg: error.localizedDescription)
         }
     }
 }

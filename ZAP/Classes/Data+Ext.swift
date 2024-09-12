@@ -7,15 +7,14 @@
 
 import Foundation
 
+
 extension Data {
 
-    func convertToDictionary() -> ([String: Any]?, InternalError?)  {
-
+    func convertToDictionary() throws -> [String: Any]? {
         do {
-            let jsonDict = try JSONSerialization.jsonObject(with: self, options: []) as? [String: Any]
-            return (jsonDict, nil)
+            return try JSONSerialization.jsonObject(with: self, options: []) as? [String : Any]
         } catch {
-            return (nil, InternalError(debugMsg: error.localizedDescription))
+            throw error
         }
     }
 }

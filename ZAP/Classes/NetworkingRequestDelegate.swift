@@ -8,34 +8,35 @@
 import Foundation
 
 protocol NetworkingRequestDelegate {
-    
+    func configureURLSession(delegate: URLSessionDelegate, urlCache: URLCache?, cachePolicy: NSURLRequest.CachePolicy?) -> URLSession
+    func buildURL(url: String, queryItems: [URLQueryItem]?) throws -> URL
+    func buildRequest(task: NetworkTask, method: HTTPMethod, url: URL, body: Encodable?, headers: [String: String]?, boundary: String, basicAuthCredentials: String?) throws -> URLRequest
 }
 
 extension NetworkingRequestDelegate {
     
-    func configureURLSession(delegate: URLSessionDelegate, urlCache: URLCache, cachePolicy: NSURLRequest.CachePolicy?) -> URLSession {
+    func configureURLSession(delegate: URLSessionDelegate, urlCache: URLCache?, cachePolicy: NSURLRequest.CachePolicy?) -> URLSession {
 
         let configuration = URLSessionConfiguration.default
         configuration.urlCache = urlCache
-//        configuration.urlCache = isMemoryCacheEnabled ? URLCache.shared : nil
         configuration.requestCachePolicy = cachePolicy ?? ZAP.defaultCachePolicy
 
         return URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
     }
         
-    func buildURL(url: String, queryItems: [URLQueryItem]? = nil) -> (URL?, InternalError?) {
+    func buildURL(url: String, queryItems: [URLQueryItem]? = nil) throws -> URL {
         if let queryItems, var urlComponents = URLComponents(string: url) {
             urlComponents.percentEncodedQueryItems = queryItems.percentEncoded()
-            return (urlComponents.url, nil)
+            if let url = urlComponents.url {
+                return url
+            }
         } else if let url = URL(string: url) {
-            return (url, nil)
-        } else {
-            let internalError = InternalError(debugMsg: ZAPErrorMsg.malformedURL.rawValue)
-            return (nil, internalError)
+            return url
         }
+        throw InternalError(ZAPErrorMsg.malformedURL.rawValue)
     }
 
-    func buildRequest(task: NetworkTask, method: HTTPMethod, url: URL, body: Encodable? = nil, headers: [String: String]? = nil, boundary: String = "", basicAuthCredentials: String?) -> (URLRequest?, InternalError?) {
+    func buildRequest(task: NetworkTask, method: HTTPMethod, url: URL, body: Encodable? = nil, headers: [String: String]? = nil, boundary: String = "", basicAuthCredentials: String?) throws -> URLRequest {
         do {
             var httpBody: Data?
             if let body {
@@ -46,44 +47,12 @@ extension NetworkingRequestDelegate {
             urlRequest.allHTTPHeaderFields = headers
             urlRequest.httpBody = httpBody
             urlRequest.addBasicAuthentication(credential: basicAuthCredentials)
-            urlRequest = addDefaultHeadersIfApplicable(for: task, urlRequest: &urlRequest, boundary: boundary)
+            urlRequest.addDefaultHeadersIfApplicable(for: task, boundary: boundary)
             
-            return (urlRequest, nil)
+            return urlRequest
             
-        } catch let error as EncodingError {
-            let errMsg = extractEncodingErrorMsg(error)
-            let internalError = InternalError(debugMsg: errMsg)
-            return (nil, internalError)
         } catch {
-            let internalError = InternalError(debugMsg: error.localizedDescription)
-            return (nil, internalError)
-        }
-    }
-    
-    func addDefaultHeadersIfApplicable(for task: NetworkTask, urlRequest: inout URLRequest, boundary: String = "") -> URLRequest {
-        switch task {
-        case .uploadSingleFile:
-            if urlRequest.allHTTPHeaderFields?[HTTPHeader.Key.contentType.rawValue] == nil {
-                urlRequest.addValue(HTTPHeader.Value.ContentType.octetStream.rawValue, forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
-            }
-        case .multipartFormData:
-            urlRequest.addValue(HTTPHeader.Value.ContentType.multipartFormData.rawValue.appending(boundary), forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
-        case .standard:
-            break
-        case .downloadSingleFile:
-            break
-        }
-        return urlRequest
-    }
-    
-    func extractEncodingErrorMsg(_ error: EncodingError) -> String {
-        switch error {
-        case .invalidValue(let value, let context):
-            debugPrint("EncodingError.invalidValue: (\(value), \(context))")
-            return context.debugDescription
-        @unknown default:
-            debugPrint("EncodingError.unknownDefault: \(error)")
-            return error.localizedDescription
+            throw error
         }
     }
 }

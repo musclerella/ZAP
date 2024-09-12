@@ -24,6 +24,21 @@ extension URLRequest {
         self.allHTTPHeaderFields = headers
     }
     
+    mutating func addDefaultHeadersIfApplicable(for task: NetworkTask, boundary: String = "") {
+        switch task {
+        case .uploadSingleFile:
+            if self.allHTTPHeaderFields?[HTTPHeader.Key.contentType.rawValue] == nil {
+                self.addValue(HTTPHeader.Value.ContentType.octetStream.rawValue, forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
+            }
+        case .multipartFormData:
+            self.addValue(HTTPHeader.Value.ContentType.multipartFormData.rawValue.appending(boundary), forHTTPHeaderField: HTTPHeader.Key.contentType.rawValue)
+        case .standard:
+            break
+        case .downloadSingleFile:
+            break
+        }
+    }
+    
     func removeAndReturnMultipartFormDataBoundaryFromHeaders() -> URLRequest {
         var headers = self.allHTTPHeaderFields
         if let contentTypeValue = headers?[HTTPHeader.Key.contentType.rawValue], contentTypeValue.hasPrefix(HTTPHeader.Value.ContentType.multipartFormData.rawValue) {

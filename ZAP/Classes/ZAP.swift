@@ -15,7 +15,7 @@ import Foundation
 //TODO: Add support to return an array of progress bars that are attached to naming identifier(s) (IS THIS NEEDED OR SHOULD THIS REQUIREMENT BE PERFORMED WITH SINGLE FILE UPLOAD APIs?
 
 public typealias MeteoriteURL = URL
-public typealias CachedSuccess<S: Decodable> = (S) -> Void
+public typealias CachedSuccess<S: Decodable> = (S?) -> Void
 
 public protocol ZAPGlobalConfiguration {
     static var memoryCacheSize: Megabytes { get set }
@@ -38,7 +38,16 @@ public class ZAP: NetworkingBase, ZAPGlobalConfiguration {
     
     //MARK: Primary Public Signatures
     public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil) async -> Result<S, ZAPError<F>> {
-        return await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+        do {
+            let successObject = try await buildAndExecuteRequest(method: httpMethod, url: url, success: success, failure: failure, body: body, queryItems: queryItems, headers: headers)
+            return .success(successObject)
+        } catch let error as ZAPError<F> {
+            return .failure(error)
+        } catch let error as InternalError {
+            return .failure(ZAPError(serverError: nil, internalErrorMsg: error.internalErrorMessage))
+        } catch {
+            return .failure(ZAPError(serverError: nil, internalErrorMsg: error.localizedDescription))
+        }
     }
 
     public func sendFile<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .post, to url: String, success: S.Type, failure: F.Type, fileURL: URL, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil, progress: DataTransferProgress? = nil) async -> Result<S, ZAPError<F>> {
@@ -89,51 +98,34 @@ public class ZAP: NetworkingBase, ZAPGlobalConfiguration {
 }
 
 //MARK: Private Methods
-extension ZAP {
+extension ZAP: MemoryCacheDelegate, DiskCacheDelegate {
 
-    private func buildAndExecuteRequest<S: Decodable, F: Decodable>(method: HTTPMethod, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil) async -> Result<S, ZAPError<F>> {
-        // 1. Build URL
-        let urlResult = buildURL(url: url, queryItems: queryItems)
-        guard let url = urlResult.0 else {
-            if let internalError = urlResult.1 {
-                return .failure(ZAPError.internalError(internalError))
-            } else {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the URL.")))
-            }
-        }
-        // 2. Build Request
-        let requestResult = buildRequest(task: .standard, method: method, url: url, body: body, headers: headers, basicAuthCredentials: basicAuthCredentials)
-        guard var request = requestResult.0 else {
-            if let internalError = requestResult.1 {
-                return .failure(ZAPError.internalError(internalError))
-            } else {
-                return .failure(ZAPError.internalError(InternalError(debugMsg: "An unknown error occurred while building the request.")))
-            }
-        }
-        // 3. Memory cache
-        if isMemoryCacheEnabled {
-            if let cachedValue = MemoryCache().retrieveFromMemoryCache(request: request, success: success) {
+    private func buildAndExecuteRequest<S: Decodable, F: Decodable>(method: HTTPMethod, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil) async throws -> S {
+
+        do {
+            let url = try buildURL(url: url, queryItems: queryItems)
+            var request = try buildRequest(task: .standard, method: method, url: url, body: body, headers: headers, basicAuthCredentials: basicAuthCredentials)
+            
+            if let cachedValue = fetchFromMemoryCache(request: request, success: success) {
+                cachedSuccess?(cachedValue)
+            } else if let cachedValue = fetchFromDiskCache(url: url.absoluteString, success: success) {
                 cachedSuccess?(cachedValue)
             }
+
+            return try await performRequestAndParseResponse(urlRequest: &request, success: success, failure: failure)
+
+        } catch {
+            throw error
         }
-        // 4. Disk cache
-        if isDiskCacheEnabled {
-            if let cachedValue = DiskCache().cachedValueAt(url: url.absoluteString, success: success) {
-                cachedSuccess?(cachedValue)
-            }
-        }
-        // 5. Perform request and parse response
-        return await performRequestAndParseResponse(urlRequest: &request, success: success, failure: failure)
     }
 
-    private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type) async -> Result<S, ZAPError<F>> {
+    private func performRequestAndParseResponse<S: Decodable, F: Decodable>(urlRequest: inout URLRequest, success: S.Type, failure: F.Type) async throws -> S {
         do {
-            let session = configureURLSession(delegate: self, urlCache: cache, cachePolicy: cachePolicy)
-            resetChainedConfigurations()
+            let session = configureURLSession(delegate: self, urlCache: isMemoryCacheEnabled ? cache : nil, cachePolicy: cachePolicy)
             let response = try await session.data(for: urlRequest)
-            return parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
+            return try parseResponse(response, requestForCaching: &urlRequest, success: success, failure: failure)
         } catch {
-            return .failure(ZAPError.internalError(InternalError(debugMsg: error.localizedDescription)))
+            throw error
         }
     }
 }

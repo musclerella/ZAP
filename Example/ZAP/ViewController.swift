@@ -33,62 +33,57 @@ class ViewController: UIViewController {
         Task {
             let result = await Zap.send(.post, url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
             switch result {
-            case .success(let success):
-                dump(success)
-            case .failure(let zapError):
-                switch zapError {
-                case .failureError(let failureError):
-                    dump(failureError)
-                case .internalError(let internalError):
-                    dump(internalError)
-                }
+            case .success(let success): break
+                // Do something with the success result
+            case .failure(let error): break
+                // Do something with the error result
             }
         }
     }
     
     private func getCall() {
         
-        let queryItems: [URLQueryItem] = [
-            URLQueryItem(name: "paramOne", value: "==??///,,+54=="),
-            URLQueryItem(name: "paramTwo", value: "=`==~!@#$%^&*()_-=+<>.?==%%%/////,,,Gir affe=")
-        ]
-        
-        Task {
-            let result = await Zap.send(.get, url: baseURL, success: PostOneResponseBody.self, failure: ServerError.self, queryItems: queryItems, headers: nil)
-            switch result {
-            case .success(let success):
-                dump(success)
-            case .failure(let zapError):
-                switch zapError {
-                case .failureError(let failureError):
-                    dump(failureError)
-                case .internalError(let internalError):
-                    dump(internalError)
-                }
-            }
-        }
+//        let queryItems: [URLQueryItem] = [
+//            URLQueryItem(name: "paramOne", value: "==??///,,+54=="),
+//            URLQueryItem(name: "paramTwo", value: "=`==~!@#$%^&*()_-=+<>.?==%%%/////,,,Gir affe=")
+//        ]
+//        
+//        Task {
+//            let result = await Zap.send(.get, url: baseURL, success: PostOneResponseBody.self, failure: ServerError.self, queryItems: queryItems, headers: nil)
+//            switch result {
+//            case .success(let success):
+//                dump(success)
+//            case .failure(let zapError):
+//                switch zapError {
+//                case .failureError(let failureError):
+//                    dump(failureError)
+//                case .internalError(let internalError):
+//                    dump(internalError)
+//                }
+//            }
+//        }
     }
     
     private func uploadFile() {
         
-        if let path = Bundle.main.url(forResource: "arctic_tundra", withExtension: "mp4") {
-            Task {
-                let result = await Zap.sendFile(.post, to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil, progress:  { progress in
-                    print("Progress: \((progress * 100).rounded(.toNearestOrEven))%")
-                })
-                switch result {
-                case .success(let success):
-                    dump(success)
-                case .failure(let zapError):
-                    switch zapError {
-                    case .failureError(let failureError):
-                        dump(failureError)
-                    case .internalError(let internalError):
-                        dump(internalError)
-                    }
-                }
-            }
-        }
+//        if let path = Bundle.main.url(forResource: "arctic_tundra", withExtension: "mp4") {
+//            Task {
+//                let result = await Zap.sendFile(.post, to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil, progress:  { progress in
+//                    print("Progress: \((progress * 100).rounded(.toNearestOrEven))%")
+//                })
+//                switch result {
+//                case .success(let success):
+//                    dump(success)
+//                case .failure(let zapError):
+//                    switch zapError {
+//                    case .failureError(let failureError):
+//                        dump(failureError)
+//                    case .internalError(let internalError):
+//                        dump(internalError)
+//                    }
+//                }
+//            }
+//        }
     }
 
     private func uploadFilesWithData() {
