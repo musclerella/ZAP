@@ -68,10 +68,6 @@ extension FileTransfer: MemoryCacheDelegate, DiskCacheDelegate {
     private func createMultipartBody(boundary: String, files: [ZAPFile], formData: [String: Any]? = nil) throws -> Data {
         var body = MultipartFormData()
         
-        if let formData {
-            try body.addFormDataToHTTPBody(boundary: boundary, formData: formData)
-        }
-
         for file in files {
             switch file {
             case .url(let fileURL, serverFileTypeIdentifier: let serverFileTypeIdentifier, mimeType: let mimeType):
@@ -79,6 +75,10 @@ extension FileTransfer: MemoryCacheDelegate, DiskCacheDelegate {
             case .data(let fileData, serverFileTypeIdentifier: let serverFileTypeIdentifier, mimeType: let mimeType):
                 try body.addZAPFile(boundary: boundary, fileData: fileData, serverFileTypeIdentifier: serverFileTypeIdentifier, mimeType: mimeType)
             }
+        }
+        
+        if let formData {
+            try body.addFormDataToHTTPBody(boundary: boundary, formData: formData)
         }
 
         body.append(try "--\(boundary)--\r\n".encode(using: .utf8))
@@ -137,6 +137,7 @@ extension FileTransfer: MemoryCacheDelegate, DiskCacheDelegate {
             let serverURL = try buildURL(url: url, queryItems: queryItems)
             let boundary = UUID().uuidString
             var request = try buildRequest(task: .multipartFormData, method: httpMethod, url: serverURL, body: body, headers: headers, boundary: boundary, basicAuthCredentials: basicAuthCredentials)
+            request.addDefaultHeadersIfApplicable(for: .multipartFormData, boundary: boundary)
 
             var multipartHttpBody: Data?
             if let httpBody = request.httpBody, let formData = try httpBody.convertToDictionary() {
@@ -146,7 +147,6 @@ extension FileTransfer: MemoryCacheDelegate, DiskCacheDelegate {
             }
 
             request.httpBody = multipartHttpBody
-            request.addDefaultHeadersIfApplicable(for: .multipartFormData, boundary: boundary)
 
             if let cachedValue = fetchFromMemoryCache(request: request, success: success) {
                 cachedSuccess?(cachedValue)
@@ -203,16 +203,16 @@ extension FileTransfer: MemoryCacheDelegate, DiskCacheDelegate {
             throw InternalError(ZAPErrorMsg.downloadFile.rawValue + urlString)
         }
 
-        var fileData: Data = try meteoriteURL.extractData()
+        let fileData: Data = try meteoriteURL.extractData()
 
         if isMemoryCacheEnabled {
             let fileSizeInMB = getFileSizeInMegabytes(at: meteoriteURL)
             if fileSizeInMB <= ZAP.maxMemoryCacheFileSize && 0 < fileSizeInMB {
-                MemoryCache().storeDataInCache(request: &requestForCaching, urlResponse: urlResponse, responseData: fileData)
+                MemoryCache().storeData(request: &requestForCaching, urlResponse: urlResponse, responseData: fileData)
             }
         }
         if isDiskCacheEnabled {
-            DiskCache().storeJSONData(request: requestForCaching, data: fileData)
+            DiskCache().storeData(request: requestForCaching, responseData: fileData)
         }
         return fileData
     }

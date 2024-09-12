@@ -11,11 +11,11 @@ class MemoryCache: NetworkingResponseDelegate {
     
     let cache: URLCache = URLCache.shared
     
-    func cachedDataFor(request: URLRequest) -> Data? {
+    func retrieveDataFor(request: URLRequest) -> Data? {
         return cache.cachedResponse(for: request)?.data
     }
     
-    func cachedValueFor<S: Decodable>(request: URLRequest, success: S.Type) -> S? {
+    func retrieveValueFor<S: Decodable>(request: URLRequest, success: S.Type) -> S? {
         let cacheableRequest = request.removeAndReturnMultipartFormDataBoundaryFromHeaders()
         if let cachedResponseData = cache.cachedResponse(for: cacheableRequest)?.data {
             do {
@@ -27,7 +27,7 @@ class MemoryCache: NetworkingResponseDelegate {
         return nil
     }
     
-    func storeDataInCache(request: inout URLRequest, urlResponse: URLResponse, responseData: Data) {
+    func storeData(request: inout URLRequest, urlResponse: URLResponse, responseData: Data) {
         let cachedResponse = CachedURLResponse(response: urlResponse, data: responseData)
         request.removeMultipartFormDataBoundaryFromHeaders()
         cache.storeCachedResponse(cachedResponse, for: request)

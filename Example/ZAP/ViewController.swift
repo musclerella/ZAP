@@ -18,6 +18,9 @@ class ViewController: UIViewController {
     // Endpoints
     let postOnePath: String = "/post/one"
     let uploadFilePath: String = "/upload/file"
+    
+    let localFilePath: URL = URL(string: "asdf/asdf/asdf")!
+    let localFileData: Data = Data()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,9 +37,9 @@ class ViewController: UIViewController {
             let result = await Zap.send(.post, url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
             switch result {
             case .success(let success): break
-                // Do something with the success result
+                // Do something with the success
             case .failure(let error): break
-                // Do something with the error result
+                // Do something with the error
             }
         }
     }
@@ -66,32 +69,50 @@ class ViewController: UIViewController {
     
     private func uploadFile() {
         
-//        if let path = Bundle.main.url(forResource: "arctic_tundra", withExtension: "mp4") {
-//            Task {
-//                let result = await Zap.sendFile(.post, to: baseURL.appending(uploadFilePath), success: PostOneResponseBody.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil, progress:  { progress in
-//                    print("Progress: \((progress * 100).rounded(.toNearestOrEven))%")
-//                })
-//                switch result {
-//                case .success(let success):
-//                    dump(success)
-//                case .failure(let zapError):
-//                    switch zapError {
-//                    case .failureError(let failureError):
-//                        dump(failureError)
-//                    case .internalError(let internalError):
-//                        dump(internalError)
-//                    }
-//                }
-//            }
-//        }
+        if let path = Bundle.main.url(forResource: "arctic_tundra", withExtension: "mp4") {
+            Task {
+                let result = await ZAP().sendFile(.post, to: baseURL.appending(uploadFilePath), success: SuccessResponse.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil) { cachedValue in
+                    // Update the UI with a cached value until new data is acquired
+                } progress: { progress in
+                    // Do something with the file transfer progress
+                }
+            }
+        }
     }
 
     private func uploadFilesWithData() {
-        // Need to test
+        
+        let zapFiles: [ZAPFile] = [
+            ZAPFile.url(localFilePath, serverFileTypeIdentifier: "Audio", mimeType: .mp3),
+            ZAPFile.data(localFileData, serverFileTypeIdentifier: "Primary_Video", mimeType: .mpeg)
+        ]
+        
+        Task {
+            let result = await ZAP().sendFilesWithData(.get, to: baseURL.appending(postOnePath), success: SuccessResponse.self, failure: ServerError.self, files: zapFiles, body: nil, queryItems: nil, headers: nil, cachedSuccess: nil) { progress in
+                // Do something with the file transfer progress
+            }
+            
+            switch result {
+            case .success(let successResponse): break
+                // Do something with the success
+            case .failure(let errorObject): break
+                // Do something with the error
+            }
+        }
     }
     
     private func downloadFile() {
-        // Need to test
+        
+        let queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "age", value: "30"),
+            URLQueryItem(name: "birthday", value: "04221995")
+        ]
+
+        Task {
+            let result = await ZAP().receiveFile(.get, from: baseURL.appending(postOnePath), body: nil, queryItems: queryItems, headers: nil, cachedFile: { cachedValue in
+                // Update the UI with a cached value until new data is acquired
+            }, progress: nil)
+        }
     }
 }
 

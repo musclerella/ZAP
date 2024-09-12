@@ -29,24 +29,24 @@ class DiskCache: NetworkingResponseDelegate {
         }
     }
     
-    func storeJSONData(request: URLRequest, data: Data) {
+    func storeData(request: URLRequest, responseData: Data) {
         if let cacheableURL = request.url?.absoluteString {
             let fileURL = cacheDirectory.appendingPathComponent(cacheableURL)
             do {
-                try data.write(to: fileURL, options: .atomicWrite)
+                try responseData.write(to: fileURL, options: .atomicWrite)
             } catch {
                 debugPrint(error.localizedDescription)
             }
         }
     }
     
-    func cachedDataAt(url: String) -> Data? {
+    func retrieveDataAt(url: String) -> Data? {
         let filePath = cacheDirectory.appendingPathComponent(url)
         return try? Data(contentsOf: filePath)
     }
     
-    func cachedSuccessAt<S: Decodable>(url: String, success: S.Type) -> S? {
-        guard let cachedData = cachedDataAt(url: url) else { return nil }
+    func retrieveSuccessAt<S: Decodable>(url: String, success: S.Type) -> S? {
+        guard let cachedData = retrieveDataAt(url: url) else { return nil }
         return try? deserializeSuccess(success, responseData: cachedData)
     }
 }

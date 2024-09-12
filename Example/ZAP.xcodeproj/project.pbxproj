@@ -18,6 +18,7 @@
 		7167F4B52C8117B8001024F9 /* PostOneResponseBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7167F4B42C8117B8001024F9 /* PostOneResponseBody.swift */; };
 		7167F4B72C811835001024F9 /* ServerError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7167F4B62C811835001024F9 /* ServerError.swift */; };
 		716B062C2C7FFBA4009848C2 /* PostOneRequestBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B062B2C7FFBA4009848C2 /* PostOneRequestBody.swift */; };
+		717272AA2C939FA200CB36D1 /* SuccessResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717272A92C939FA200CB36D1 /* SuccessResponse.swift */; };
 		F00EAB9C24C44684D5E98045 /* Pods_ZAP_Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4157A0F82A059162A71D8704 /* Pods_ZAP_Tests.framework */; };
 /* End PBXBuildFile section */
 
@@ -50,6 +51,7 @@
 		7167F4B42C8117B8001024F9 /* PostOneResponseBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostOneResponseBody.swift; sourceTree = "<group>"; };
 		7167F4B62C811835001024F9 /* ServerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerError.swift; sourceTree = "<group>"; };
 		716B062B2C7FFBA4009848C2 /* PostOneRequestBody.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostOneRequestBody.swift; sourceTree = "<group>"; };
+		717272A92C939FA200CB36D1 /* SuccessResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SuccessResponse.swift; path = ../../ZAP/Classes/SuccessResponse.swift; sourceTree = "<group>"; };
 		9AD1F7045EC161DE3E437179 /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
 		9BDB06BADD55062BC7EA4348 /* Pods_ZAP_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ZAP_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A105CF1B76AE64A1D3D736BA /* Pods-ZAP_Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ZAP_Tests.debug.xcconfig"; path = "Target Support Files/Pods-ZAP_Tests/Pods-ZAP_Tests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 			children = (
 				7167F4B42C8117B8001024F9 /* PostOneResponseBody.swift */,
 				7167F4B62C811835001024F9 /* ServerError.swift */,
+				717272A92C939FA200CB36D1 /* SuccessResponse.swift */,
 			);
 			name = Response;
 			sourceTree = "<group>";
@@ -366,6 +369,7 @@
 				607FACD81AFB9204008FA782 /* ViewController.swift in Sources */,
 				607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */,
 				716B062C2C7FFBA4009848C2 /* PostOneRequestBody.swift in Sources */,
+				717272AA2C939FA200CB36D1 /* SuccessResponse.swift in Sources */,
 				7167F4B52C8117B8001024F9 /* PostOneResponseBody.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

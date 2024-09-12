@@ -36,39 +36,74 @@ it, simply add the following line to your Podfile:
 pod 'ZAP'
 ```
 
-## Instance Implementation (Recommended)
+## Instance Implementation
 Every request gets its own instance so that all configurations are contained within the single request allowing for fine control and non interference with other networking tasks. Best used for granular control when complex concurrent or parallel tasks are being performed and need precise handling. This object does not need retained in memory because all cached data is stored in a singleton.
 
 ```swift
-Task {
-    let result = await Zap().send(.post, url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
-    switch result {
-    case .success(let success): break
-        // Do something with the success result
-    case .failure(let error): break
-        // Do something with the error result
-    }
-}
+Zap()
 ```
 
 Send a networking request with basic data and no files
 
 ```swift
+Task {
+    let result = await Zap().send(.post, url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
+    switch result {
+    case .success(let successObject): break
+        // Do something with the success object
+    case .failure(let errorObject): break
+        // Do something with the error object
+    }
+}
 ```
 
 Send a networking request to upload a single file
 
 ```swift
+Task {
+    let result = await ZAP().sendFile(.post, to: baseURL.appending(uploadFilePath), success: SuccessResponse.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil) { cachedValue in
+        // Update the UI with a cached value until new data is acquired
+    } progress: { progress in
+        // Do something with the file transfer progress
+    }
+}
 ```
 
 Send a networking request to upload multiple files and optionally other basic data
 
 ```swift
+let zapFiles: [ZAPFile] = [
+    ZAPFile.url(localFilePath, serverFileTypeIdentifier: "Audio", mimeType: .mp3),
+    ZAPFile.data(localFileData, serverFileTypeIdentifier: "Primary_Video", mimeType: .mpeg)
+]
+        
+Task {
+    let result = await ZAP().sendFilesWithData(.get, to: baseURL.appending(postOnePath), success: SuccessResponse.self, failure: ServerError.self, files: zapFiles, body: nil, queryItems: nil, headers: nil, cachedSuccess: nil) { progress in
+        // Do something with the file transfer progress
+    }
+            
+    switch result {
+    case .success(let successResponse): break
+        // Do something with the success
+    case .failure(let errorObject): break
+        // Do something with the error
+    }
+}
 ```
 
 Send a networking request to download a single file
 
 ```swift
+let queryItems: [URLQueryItem] = [
+    URLQueryItem(name: "age", value: "30"),
+    URLQueryItem(name: "birthday", value: "04221995")
+]
+
+Task {
+    let result = await ZAP().receiveFile(.get, from: baseURL.appending(postOnePath), body: nil, queryItems: queryItems, headers: nil, cachedFile: { cachedValue in
+        // Update the UI with a cached value until new data is acquired
+    }, progress: nil)
+}
 ```
 
 ## Authentication

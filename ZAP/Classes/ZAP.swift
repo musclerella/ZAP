@@ -36,6 +36,10 @@ public class ZAP: NetworkingBase, ZAPGlobalConfiguration {
     public static var defaultCachePolicy: NSURLRequest.CachePolicy = .useProtocolCachePolicy
     public static var defaultAuthCredentials: String?
     
+    public override init() {
+        
+    }
+    
     //MARK: Primary Public Signatures
     public func send<S: Decodable, F: Decodable>(_ httpMethod: HTTPMethod = .get, url: String, success: S.Type, failure: F.Type, body: Encodable? = nil, queryItems: [URLQueryItem]? = nil, headers: [String: String]? = nil, cachedSuccess: CachedSuccess<S>? = nil) async -> Result<S, ZAPError<F>> {
         do {
