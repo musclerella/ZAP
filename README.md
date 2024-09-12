@@ -29,7 +29,9 @@ iOS
 
 ## Installation
 
-ZAP is available through [CocoaPods](https://cocoapods.org). To install
+ZAP v1.0 IS STILL CURRENTLY UNDER DEVELOPMENT AND NOT AVAILABLE TO THE PUBLIC OR READY FOR PRODUCTION USE
+
+ZAP will be available through [CocoaPods](https://cocoapods.org). To install
 it, simply add the following line to your Podfile:
 
 ```ruby
