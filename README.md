@@ -8,7 +8,7 @@ Simple, straight to the point HTTP Networking
 
 ## Features
 
-- [x] CRUD Operations
+- [x] POST, GET, PUT, DELETE
 - [x] Upload File
 - [x] Upload Multipart FormData
 - [x] Download File
