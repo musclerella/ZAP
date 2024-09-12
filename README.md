@@ -2,7 +2,7 @@
 Simple, straight to the point HTTP Networking
 
 [![Swift](https://img.shields.io/badge/Swift-5-red?style=flat-square)](https://img.shields.io/badge/Swift-5-red?style=flat-square)
-![pod version](https://img.shields.io/badge/pod-v0.0.1-blue)](https://img.shields.io/badge/pod-v0.0.1-blue)
+[![pod version](https://img.shields.io/badge/pod-v0.0.1-blue)](https://img.shields.io/badge/pod-v0.0.1-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS-blueviolet?style=flat-square)](https://img.shields.io/badge/Platforms-iOS-blueviolet?style=flat-square)
 
