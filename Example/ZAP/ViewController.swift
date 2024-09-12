@@ -109,9 +109,14 @@ class ViewController: UIViewController {
         ]
 
         Task {
-            let result = await ZAP().receiveFile(.get, from: baseURL.appending(postOnePath), body: nil, queryItems: queryItems, headers: nil, cachedFile: { cachedValue in
-                // Update the UI with a cached value until new data is acquired
-            }, progress: nil)
+            let result = await ZAP().receiveFile(.get, from: baseURL.appending(postOnePath), body: nil, queryItems: queryItems, headers: nil, cachedFile: nil, progress: nil)
+        }
+        
+        
+        Task {
+            let result = await ZAP().cacheInMemory().send(url: baseURL.appending(postOnePath), success: SuccessResponse.self, failure: ServerError.self) { cachedSuccess in
+                // Update the UI temporarily with cached data until new data is received from the server
+            }
         }
     }
 }

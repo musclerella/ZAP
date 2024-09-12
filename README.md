@@ -61,9 +61,7 @@ Send a networking request to upload a single file
 
 ```swift
 Task {
-    let result = await ZAP().sendFile(.post, to: baseURL.appending(uploadFilePath), success: SuccessResponse.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil) { cachedValue in
-        // Update the UI with a cached value until new data is acquired
-    } progress: { progress in
+    let result = await ZAP().sendFile(.post, to: baseURL.appending(uploadFilePath), success: SuccessResponse.self, failure: ServerError.self, fileURL: path, queryItems: nil, headers: nil, cachedSuccess: nil, progress: { progress in
         // Do something with the file transfer progress
     }
 }
@@ -100,32 +98,71 @@ let queryItems: [URLQueryItem] = [
 ]
 
 Task {
-    let result = await ZAP().receiveFile(.get, from: baseURL.appending(postOnePath), body: nil, queryItems: queryItems, headers: nil, cachedFile: { cachedValue in
-        // Update the UI with a cached value until new data is acquired
-    }, progress: nil)
+    let result = await ZAP().receiveFile(.get, from: baseURL.appending(postOnePath), body: nil, queryItems: queryItems, headers: nil, cachedFile: nil, progress: nil)
+    switch result {
+    case .success(let fileData): break
+        // Do something with the success
+    case .failure(let errorObject): break
+        // Do something with the error
+    }
 }
 ```
 
-## Authentication
+## Chained Configurations
+
+### Authentication
 
 Automatically sets the "Authorization" header with a base 64 encoded token. Omitting the arguments will utilize global configuration default authorization credentials if present
 auth(user: "", pass: "")
 
-## Memory & Disk Caching
+```swift
+Task {
+    let result = await ZAP()
+                        .auth(token: keychain.get(AUTH_TOKEN))
+                        .send(success: SuccessResponse.self, failure: ServerError.self)
+}
+```
+
+### Memory Cache
 
 Add the chained configuration cacheInMemory() to enable caching support for a specific request. The `CachedSuccess` value will return a closure with your cached response data if it is available in the memory cache.
 
 ```swift
+Task {
+    let result = await ZAP()
+                        .cacheInMemory()
+                        .send(url: baseURL.appending(postOnePath), success: SuccessResponse.self, failure: ServerError.self) { cachedSuccess in
+        // Update the UI temporarily with cached data until new data is received from the server
+    }
+}
 ```
+
+### Disk Cache
 
 Add the chained configuration cacheOnDisk() to enable caching support for a specific request. The `CachedSuccess` value will return a closure with your cache response data if it is available in the disk cache.
 
 ```swift
+Task {
+    let result = await ZAP()
+                        .cacheOnDisk()
+                        .send(url: baseURL.appending(postOnePath), success: SuccessResponse.self, failure: ServerError.self) { cachedSuccess in
+        // Update the UI temporarily with cached data until new data is received from the server
+    }
+}
 ```
 
 ## Global Configurations
 
 Modifying these static properties allow you to have internal control on how the framework behaves. Determine how much space your caches take up hardware resources and more.
+
+```swift
+ZAP.memoryCacheSize = 100
+ZAP.diskCacheSize = 500
+ZAP.maxMemoryCacheFileSize = 5
+ZAP.successStatusCodes = [200, 201, 202, 203, 204, 205, 206, 207, 208, 226, 300, 301, 302, 303, 304, 305, 306, 307, 308]
+ZAP.defaultCachePolicy = .useProtocolCachePolicy
+ZAP.defaultAuthCredentials = keychain.get(AUTH_TOKEN)
+```
 
 ## Author
 
