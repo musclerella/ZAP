@@ -32,7 +32,7 @@ public class ZAP: NetworkingBase, ZAPGlobalConfiguration {
     public static var memoryCacheSize: Megabytes = 100
     public static var diskCacheSize: Megabytes = 500
     public static var maxMemoryCacheFileSize: Megabytes = 5
-    public static var successStatusCodes: [Int] = [200]
+    public static var successStatusCodes: [Int] = [200, 201, 202, 203, 204, 205, 206, 207, 208, 226, 300, 301, 302, 303, 304, 305, 306, 307, 308]
     public static var defaultCachePolicy: NSURLRequest.CachePolicy = .useProtocolCachePolicy
     public static var defaultAuthCredentials: String?
     
@@ -62,7 +62,7 @@ public class ZAP: NetworkingBase, ZAPGlobalConfiguration {
         return await FileTransfer().downloadFile(httpMethod, from: url, body: body, queryItems: queryItems, headers: headers, progress: progress)
     }
 
-    //MARK: Authorization Configuration
+    //MARK: Authentication Configuration
     public func auth(user: String, pass: String) -> ZAP {
         let credentials = "\(user):\(pass)"
         let encodedCredentials = Data(credentials.utf8).base64EncodedString()

@@ -56,10 +56,10 @@ public class NetworkingBase: NSObject, NetworkingRequestDelegate, NetworkingResp
         }
 
         if isMemoryCacheEnabled {
-            MemoryCache().storeDataInCache(request: &requestForCaching, urlResponse: urlResponse, responseData: responseData)
+            MemoryCache().storeData(request: &requestForCaching, urlResponse: urlResponse, responseData: responseData)
         }
         if isDiskCacheEnabled {
-            DiskCache().storeJSONData(request: requestForCaching, data: responseData)
+            DiskCache().storeData(request: requestForCaching, responseData: responseData)
         }
 
         do {
