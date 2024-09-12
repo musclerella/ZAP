@@ -41,7 +41,7 @@ Every request gets its own instance so that all configurations are contained wit
 
 ```swift
 Task {
-    let result = await Zap.send(.post, url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
+    let result = await Zap()    .send(.post, url: baseURL.appending(postOnePath), success: PostOneResponseBody.self, failure: ServerError.self, body: body)
     switch result {
     case .success(let success): break
         // Do something with the success result
