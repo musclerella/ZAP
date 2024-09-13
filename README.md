@@ -141,7 +141,7 @@ Task {
 
 ### Disk Cache
 
-Add the chained configuration cacheOnDisk() to enable caching support for a specific request. The `CachedSuccess` value will return a closure with your cache response data if it is available in the disk cache.
+Add the chained configuration cacheOnDisk() to enable caching support for a specific request. The `CachedSuccess` value will return a closure with your cache response data if it is available on the disk cache.
 
 ```swift
 Task {
@@ -155,7 +155,7 @@ Task {
 
 ## Global Configurations
 
-Modifying these static properties allow you to have internal control on how the framework behaves. Determine how much space your caches take up hardware resources and more.
+Modifying these static properties allow you to have internal control on how the framework behaves. Determine how much space your caches take up, hardware resources, and more.
 
 ```swift
 ZAP.memoryCacheSize = 100
